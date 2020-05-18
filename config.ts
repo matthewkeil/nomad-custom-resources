@@ -1,10 +1,8 @@
 require("dotenv").config();
 import { ACM, CloudFormation, Route53, S3 } from "aws-sdk";
 
-const REGION = "us-east-1";
-
 const AWS_SERVICE_CONFIG = {
-  region: REGION,
+  region: process.env.REGION || "us-east-1",
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 };

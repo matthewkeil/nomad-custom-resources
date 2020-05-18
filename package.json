@@ -17,9 +17,7 @@
   "dependencies": {
     "aws-sdk": "^2.678.0",
     "axios": "^0.19.2",
-    "debug": "^4.1.1",
     "dotenv": "^8.2.0",
-    "nomad-devops": "git+https://github.com/matthewkeil/nomad-devops.git",
     "uuid": "^8.0.0"
   },
   "devDependencies": {
@@ -30,7 +28,14 @@
     "@types/jszip": "^3.4.1",
     "@types/uuid": "^7.0.3",
     "@types/webpack": "^4.41.13",
+    "@typescript-eslint/eslint-plugin": "^2.6.1",
+    "@typescript-eslint/parser": "^2.6.1",
+    "debug": "^4.1.1",
+    "eslint": "^6.6.0",
+    "eslint-config-prettier": "^6.5.0",
+    "eslint-plugin-prettier": "^3.1.1",
     "jszip": "^3.4.0",
+    "prettier": "^1.17.1",
     "shebang-loader": "0.0.1",
     "string-replace-loader": "^2.3.0",
     "ts-loader": "^7.0.4",

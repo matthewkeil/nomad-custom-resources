@@ -9,7 +9,7 @@ import {
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceUpdateEvent,
 } from "aws-lambda";
-import { getCertificateForDomain, updateCertificate, requestCertificate } from "nomad-devops";
+import { getCertificateForDomain, updateCertificate, requestCertificate } from "../lib";
 import { ResourceHandler } from "./handler";
 import { config } from "../config";
 

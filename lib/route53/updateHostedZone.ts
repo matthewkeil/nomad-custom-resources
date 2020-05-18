@@ -1,7 +1,5 @@
-import DEBUG from "debug";
-const Debug = (filter: string) =>
-  DEBUG("devops:lib:aws:route53:updateHostedZone" + (filter.length ? `:${filter}` : ""));
-const debug = Debug("");
+import { Debug } from "../debug";
+const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
 import { config } from "../../config";
 import { HostedZoneParams } from "./HostedZoneParams";
@@ -16,7 +14,7 @@ interface UpdateHostedZoneParams {
 export const updateHostedZone = async ({
   Id,
   ResourceProperties,
-  OldResourceProperties,
+  OldResourceProperties
 }: UpdateHostedZoneParams): Promise<HostedZoneParams> => {
   if (OldResourceProperties.Name !== ResourceProperties.Name) {
     throw new Error("cannot update the Name of a HostedZone");
@@ -28,7 +26,7 @@ export const updateHostedZone = async ({
   ) {
     await config.route53.updateHostedZoneComment({
       Id,
-      Comment: ResourceProperties?.HostedZoneConfig?.Comment as string,
+      Comment: ResourceProperties?.HostedZoneConfig?.Comment as string
     });
   }
 
@@ -36,13 +34,13 @@ export const updateHostedZone = async ({
     const oldTags = new Map(
       (OldResourceProperties.HostedZoneTags as Route53.TagList).map(({ Key, Value }) => [
         Key,
-        Value,
+        Value
       ]) || []
     );
     const newTags = new Map(
       (ResourceProperties.HostedZoneTags as Route53.TagList).map(({ Key, Value }) => [
         Key,
-        Value,
+        Value
       ]) || []
     );
     const deletes: string[] = [];
@@ -52,7 +50,7 @@ export const updateHostedZone = async ({
 
     const params: Route53.ChangeTagsForResourceRequest = {
       ResourceType: "hostedzone",
-      ResourceId: Id,
+      ResourceId: Id
     };
     if (adds.length) params.AddTags = adds;
     if (deletes.length) params.RemoveTagKeys = deletes;
@@ -67,7 +65,8 @@ export const updateHostedZone = async ({
     await config.route53
       .createQueryLoggingConfig({
         HostedZoneId: Id,
-        CloudWatchLogsLogGroupArn: ResourceProperties?.QueryLoggingConfig?.CloudWatchLogsLogGroupArn as string,
+        CloudWatchLogsLogGroupArn: ResourceProperties?.QueryLoggingConfig
+          ?.CloudWatchLogsLogGroupArn as string
       })
       .promise();
   }

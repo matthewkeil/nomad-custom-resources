@@ -1,8 +1,9 @@
+import { Debug } from "../debug";
+const debug = Debug(__dirname, __filename);
 import { config } from "../../config";
 import { normalizeDomain } from "../normalizeDomain";
-import { DomainRecords } from "../getDomainRecords";
+import { DomainRecords } from "./DomainRecords";
 import { getHostedZoneForDomain } from "./getHostedZoneForDomain";
-
 
 export type ZoneInfo = Partial<DomainRecords> & { HostedZoneId?: string };
 
@@ -11,12 +12,12 @@ export const getZoneInfoForDomain = async (rootDomain: string): Promise<ZoneInfo
   if (!hostedZone) return;
 
   const records: ZoneInfo = {
-    HostedZoneId: hostedZone.Id.split("/").pop(),
+    HostedZoneId: hostedZone.Id.split("/").pop()
   } as any;
   const types = ["NS", "SOA", "CNAME", "MX"] as const;
   const { ResourceRecordSets } = await config.route53
     .listResourceRecordSets({
-      HostedZoneId: hostedZone.Id,
+      HostedZoneId: hostedZone.Id
     })
     .promise();
   const findRecord = (_type: typeof types[number]) =>
@@ -29,12 +30,12 @@ export const getZoneInfoForDomain = async (rootDomain: string): Promise<ZoneInfo
       case "NS":
         records.domain = normalizeDomain(record[0].Name);
         records.ns = new Set();
-        for (const ns of record[0].ResourceRecords.map((ns) => ns.Value))
+        for (const ns of record[0].ResourceRecords.map(ns => ns.Value))
           records.ns.add(normalizeDomain(ns));
         break;
       case "MX":
         records.mx = new Map();
-        record[0].ResourceRecords.map((mx) =>
+        record[0].ResourceRecords.map(mx =>
           mx.Value.split(" ")
         ).map(([priority, exchange]: [string, string]) =>
           records.mx.set(normalizeDomain(exchange), +priority)
@@ -48,7 +49,7 @@ export const getZoneInfoForDomain = async (rootDomain: string): Promise<ZoneInfo
           refresh,
           retry,
           expire,
-          minttl,
+          minttl
         ] = record[0].ResourceRecords[0].Value.split(" ");
         records.soa = {
           nsname: normalizeDomain(nsname),
@@ -57,7 +58,7 @@ export const getZoneInfoForDomain = async (rootDomain: string): Promise<ZoneInfo
           refresh: +refresh,
           retry: +retry,
           expire: +expire,
-          minttl: +minttl,
+          minttl: +minttl
         };
         break;
       case "CNAME":

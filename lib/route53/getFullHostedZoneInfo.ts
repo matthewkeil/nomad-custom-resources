@@ -1,7 +1,5 @@
-import DEBUG from "debug";
-const Debug = (filter: string) =>
-  DEBUG("devops:lib:aws:route53:getFullHostedZoneInfo" + (filter.length ? `:${filter}` : ""));
-const debug = Debug("");
+import { Debug } from "../debug";
+const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
 import { config } from "../../config";
 

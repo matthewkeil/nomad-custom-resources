@@ -1,3 +1,4 @@
+export * from "./createCertRecordSet";
 export * from "./createHostedZone";
 export * from "./deleteHostedZone";
 export * from "./getDelegationSet";

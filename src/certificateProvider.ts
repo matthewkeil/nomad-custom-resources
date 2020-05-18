@@ -9,7 +9,7 @@ import {
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
 import { ResourceHandler } from "./handler";
-import { getIssuedCertificate, getCertificateForDomain } from "nomad-devops";
+import { getIssuedCertificate, getCertificateForDomain } from "../lib";
 
 export const certificateProvider: ResourceHandler = async event => {
   try {

@@ -1,5 +1,11 @@
 {
-  "include": ["index.ts", "webpack.config.ts", "cloudformation/**/*", "src/**/*", "config.ts"],
+  "include": [
+    "config.ts",
+    "webpack.config.ts",
+    "bin/**/*", 
+    "lib/**/*", 
+    "src/**/*", 
+    ],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "lib": ["ESNext", "ESNext.AsyncIterable", "ES2020"],

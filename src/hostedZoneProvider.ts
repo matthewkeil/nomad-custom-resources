@@ -11,10 +11,10 @@ import {
   HostedZoneParams,
   getHostedZoneForDomain,
   getZoneInfoForDomain,
-  ZoneInfo,
-} from "nomad-devops";
+  ZoneInfo
+} from "../lib";
 
-export const hostedZoneProvider: ResourceHandler = async (event) => {
+export const hostedZoneProvider: ResourceHandler = async event => {
   try {
     const Name = event.ResourceProperties.Name;
     if (!Name) throw new Error("must provide a Name for HostedZone");
@@ -27,7 +27,7 @@ export const hostedZoneProvider: ResourceHandler = async (event) => {
       case "create":
         results = await createHostedZone({
           RequestId: event.RequestId,
-          ResourceProperties: (event as any).ResourceProperties as HostedZoneParams,
+          ResourceProperties: (event as any).ResourceProperties as HostedZoneParams
         });
         zoneInfo = await getZoneInfoForDomain(Name);
         break;
@@ -35,13 +35,13 @@ export const hostedZoneProvider: ResourceHandler = async (event) => {
         results = await updateHostedZone({
           Id: HostedZoneId,
           OldResourceProperties: (event as any).OldResourceProperties as HostedZoneParams,
-          ResourceProperties: (event as any).ResourceProperties as HostedZoneParams,
+          ResourceProperties: (event as any).ResourceProperties as HostedZoneParams
         });
         zoneInfo = await getZoneInfoForDomain(Name);
         break;
       case "delete":
         results = await deleteHostedZone({
-          Id: HostedZoneId,
+          Id: HostedZoneId
         });
         break;
       default:
@@ -51,7 +51,7 @@ export const hostedZoneProvider: ResourceHandler = async (event) => {
           StackId: event.StackId,
           PhysicalResourceId: "NomadDevops::HostedZone",
           LogicalResourceId: event.LogicalResourceId,
-          Reason: "invalid event.RequestType",
+          Reason: "invalid event.RequestType"
         });
     }
     debug(results);
@@ -61,12 +61,12 @@ export const hostedZoneProvider: ResourceHandler = async (event) => {
       RequestId: event.RequestId,
       StackId: event.StackId,
       PhysicalResourceId: "NomadDevops::HostedZone",
-      LogicalResourceId: event.LogicalResourceId,
+      LogicalResourceId: event.LogicalResourceId
     };
     if (!!zoneInfo) {
       response.Data = {
         NameServers: zoneInfo.ns,
-        Id: HostedZoneId,
+        Id: HostedZoneId
       };
     }
     return response;
@@ -77,7 +77,7 @@ export const hostedZoneProvider: ResourceHandler = async (event) => {
       StackId: event.StackId,
       PhysicalResourceId: "NomadDevops::HostedZone",
       LogicalResourceId: event.LogicalResourceId,
-      Reason: JSON.stringify(err),
+      Reason: JSON.stringify(err)
     };
   }
 };

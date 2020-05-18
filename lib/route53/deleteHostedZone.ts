@@ -1,7 +1,5 @@
-import DEBUG from "debug";
-const Debug = (filter: string) =>
-  DEBUG("devops:lib:aws:route53:deleteHostedZone" + (filter.length ? `:${filter}` : ""));
-const debug = Debug("");
+import { Debug } from "../debug";
+const debug = Debug(__dirname, __filename);
 import { Route53, ACM } from "aws-sdk";
 import { config } from "../../config";
 
@@ -29,7 +27,7 @@ export const deleteHostedZone = async ({ Id }: DeleteHostedZoneParams): Promise<
       .changeTagsForResource({
         ResourceType: "hostedzone",
         ResourceId: Id,
-        RemoveTagKeys: tags.map((tag) => `${tag?.Key}`),
+        RemoveTagKeys: tags.map(tag => `${tag?.Key}`)
       })
       .promise();
   }
@@ -43,7 +41,7 @@ export const deleteHostedZone = async ({ Id }: DeleteHostedZoneParams): Promise<
     debug("deleting queryLoggingConfig: ", queryLoggingConfig);
     await config.route53
       .deleteQueryLoggingConfig({
-        Id,
+        Id
       })
       .promise();
   }
@@ -54,7 +52,7 @@ export const deleteHostedZone = async ({ Id }: DeleteHostedZoneParams): Promise<
     const { ResourceRecordSets = [], NextRecordIdentifier } = await config.route53
       .listResourceRecordSets({
         HostedZoneId: Id,
-        StartRecordIdentifier: Marker,
+        StartRecordIdentifier: Marker
       })
       .promise();
     records.push(...ResourceRecordSets);
@@ -66,8 +64,8 @@ export const deleteHostedZone = async ({ Id }: DeleteHostedZoneParams): Promise<
     if (record.Type === "SOA" || record.Type === "NS") continue;
     changes.push({
       Action: "DELETE",
-      ResourceRecordSet: record,
-    })
+      ResourceRecordSet: record
+    });
   }
 
   if (changes.length) {
@@ -75,8 +73,8 @@ export const deleteHostedZone = async ({ Id }: DeleteHostedZoneParams): Promise<
       .changeResourceRecordSets({
         HostedZoneId: Id,
         ChangeBatch: {
-          Changes: changes,
-        },
+          Changes: changes
+        }
       })
       .promise();
   }
