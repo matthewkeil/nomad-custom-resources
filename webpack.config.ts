@@ -7,14 +7,15 @@ const config: Configuration = {
   mode: PROD ? "production" : "development",
   target: "node",
   devtool: PROD ? undefined : "eval-source-map",
-  entry: resolve(__dirname, "src", "handler.ts"),
+  entry: resolve(__dirname, "src", "index.ts"),
   output: {
     path: resolve(__dirname, "build"),
     filename: "index.js",
+    libraryTarget: "commonjs"
   },
   resolve: {
     modules: ["node_modules"],
-    extensions: [".ts", ".js", ".json"],
+    extensions: [".ts", ".js", ".json"]
   },
   externals: [],
   module: {
@@ -26,24 +27,21 @@ const config: Configuration = {
           {
             loader: "ts-loader",
             options: {
-              configFile: "tsconfig.prod.json",
-            },
-          },
-          {
-            loader: "shebang-loader",
-          },
-        ],
+              configFile: "tsconfig.prod.json"
+            }
+          }
+        ]
       },
       {
         test: /\.js$/,
         use: [
           {
-            loader: "shebang-loader",
-          },
-        ],
-      },
-    ],
-  },
+            loader: "shebang-loader"
+          }
+        ]
+      }
+    ]
+  }
 };
 
 export default config;

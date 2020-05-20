@@ -1,9 +1,5 @@
-import DEBUG from "debug";
-const Debug = (filter: string) =>
-  DEBUG(
-    "devops:src:customResources:certificateRequestProvider" + (filter.length ? `:${filter}` : "")
-  );
-const debug = Debug("");
+import { Debug } from "./debug";
+const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceResponse } from "aws-lambda";
 import { ResourceHandler } from "./handler";
 

@@ -1,4 +1,4 @@
-import { Debug } from "../debug";
+import { Debug } from "../../src/debug";
 const debug = Debug(__dirname, __filename);
 import { config } from "../../config";
 

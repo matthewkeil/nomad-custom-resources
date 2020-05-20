@@ -1,3 +1,5 @@
+import { Debug } from "./debug";
+const debug = Debug(__dirname, __filename);
 import {
   CloudFormationCustomResourceHandler,
   CloudFormationCustomResourceResponse,

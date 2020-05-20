@@ -1,13 +1,9 @@
-import DEBUG from "debug";
-const Debug = (filter: string) =>
-  DEBUG(
-    "devops:src:customResources:certificateRequestProvider" + (filter.length ? `:${filter}` : "")
-  );
-const debug = Debug("");
+import { Debug } from "./debug";
+const debug = Debug(__dirname, __filename);
 import { ACM } from "aws-sdk";
 import {
   CloudFormationCustomResourceResponse,
-  CloudFormationCustomResourceUpdateEvent,
+  CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
 import { getCertificateForDomain, updateCertificate, requestCertificate } from "../lib";
 import { ResourceHandler } from "./handler";
@@ -15,7 +11,7 @@ import { config } from "../config";
 
 const handleCertificateRequestUpdate = async ({
   OldResourceProperties,
-  ResourceProperties,
+  ResourceProperties
 }: CloudFormationCustomResourceUpdateEvent) => {
   if (ResourceProperties.DomainName !== ResourceProperties.DomainName) {
     throw new Error("cannot update the DomainName of a Certificate");
@@ -51,14 +47,14 @@ const handleCertificateRequestUpdate = async ({
   await updateCertificate({
     CertificateArn: `${Certificate?.CertificateArn}`,
     Options: ResourceProperties.Options,
-    Tags: ResourceProperties.Tags,
+    Tags: ResourceProperties.Tags
   });
   return await config.acm
     .describeCertificate({ CertificateArn: `${Certificate?.CertificateArn}` })
     .promise();
 };
 
-export const certificateRequestProvider: ResourceHandler = async (event) => {
+export const certificateRequestProvider: ResourceHandler = async event => {
   try {
     let { Certificate: certificate } = await getCertificateForDomain(
       event.ResourceProperties["DomainName"]
@@ -70,7 +66,7 @@ export const certificateRequestProvider: ResourceHandler = async (event) => {
         if (!certificate)
           certificate = await requestCertificate({
             ...(event.ResourceProperties as Partial<ACM.RequestCertificateRequest>),
-            IdempotencyToken: event.RequestId,
+            IdempotencyToken: event.RequestId
           });
         break;
       case "UPDATE":
@@ -91,7 +87,7 @@ export const certificateRequestProvider: ResourceHandler = async (event) => {
           StackId: event.StackId,
           PhysicalResourceId: "NomadDevops::CertificateRequest",
           LogicalResourceId: event.LogicalResourceId,
-          Reason: "invalid event.RequestType",
+          Reason: "invalid event.RequestType"
         };
     }
     debug(results);
@@ -101,11 +97,11 @@ export const certificateRequestProvider: ResourceHandler = async (event) => {
       RequestId: event.RequestId,
       StackId: event.StackId,
       PhysicalResourceId: "NomadDevops::CertificateRequest",
-      LogicalResourceId: event.LogicalResourceId,
+      LogicalResourceId: event.LogicalResourceId
     };
     if (certificate) {
       response.Data = {
-        Arn: certificate.CertificateArn,
+        Arn: certificate.CertificateArn
       };
     }
     return response;
@@ -116,7 +112,7 @@ export const certificateRequestProvider: ResourceHandler = async (event) => {
       StackId: event.StackId,
       PhysicalResourceId: "NomadDevops::CertificateRequest",
       LogicalResourceId: event.LogicalResourceId,
-      Reason: JSON.stringify(err),
+      Reason: JSON.stringify(err)
     };
   }
 };
