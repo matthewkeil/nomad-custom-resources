@@ -1,16 +1,16 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
-import { config } from "../../config";
+import { route53 } from "../../config";
 
 export const getFullHostedZoneInfo = async ({ Id }: { Id: string }) => {
-  const { HostedZone, VPCs } = await config.route53.getHostedZone({ Id }).promise();
+  const { HostedZone, VPCs } = await route53.getHostedZone({ Id }).promise();
   const Name = HostedZone.Name;
   const HostedZoneConfig = HostedZone.Config;
 
   let HostedZoneTags: undefined | Route53.TagList;
   try {
-    const { ResourceTagSet } = await config.route53
+    const { ResourceTagSet } = await route53
       .listTagsForResource({ ResourceId: Id, ResourceType: "hostedzone" })
       .promise();
     HostedZoneTags = ResourceTagSet?.Tags;
@@ -18,7 +18,7 @@ export const getFullHostedZoneInfo = async ({ Id }: { Id: string }) => {
 
   let QueryLoggingConfig: undefined | Route53.QueryLoggingConfig;
   try {
-    const queryConfig = await config.route53.getQueryLoggingConfig({ Id }).promise();
+    const queryConfig = await route53.getQueryLoggingConfig({ Id }).promise();
     QueryLoggingConfig = queryConfig.QueryLoggingConfig;
   } catch {}
 
@@ -27,6 +27,6 @@ export const getFullHostedZoneInfo = async ({ Id }: { Id: string }) => {
     HostedZoneConfig,
     HostedZoneTags,
     QueryLoggingConfig,
-    VPCs,
+    VPCs
   };
 };

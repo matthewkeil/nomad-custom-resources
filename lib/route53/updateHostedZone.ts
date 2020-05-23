@@ -1,7 +1,7 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
-import { config } from "../../config";
+import { route53 } from "../../config";
 import { HostedZoneParams } from "./HostedZoneParams";
 import { getFullHostedZoneInfo } from "./getFullHostedZoneInfo";
 
@@ -24,7 +24,7 @@ export const updateHostedZone = async ({
     OldResourceProperties?.HostedZoneConfig?.Comment !==
     ResourceProperties?.HostedZoneConfig?.Comment
   ) {
-    await config.route53.updateHostedZoneComment({
+    await route53.updateHostedZoneComment({
       Id,
       Comment: ResourceProperties?.HostedZoneConfig?.Comment as string
     });
@@ -54,15 +54,15 @@ export const updateHostedZone = async ({
     };
     if (adds.length) params.AddTags = adds;
     if (deletes.length) params.RemoveTagKeys = deletes;
-    await config.route53.changeTagsForResource(params).promise();
+    await route53.changeTagsForResource(params).promise();
   }
 
   if (
     OldResourceProperties.QueryLoggingConfig?.CloudWatchLogsLogGroupArn !==
     ResourceProperties.QueryLoggingConfig?.CloudWatchLogsLogGroupArn
   ) {
-    await config.route53.deleteQueryLoggingConfig({ Id }).promise();
-    await config.route53
+    await route53.deleteQueryLoggingConfig({ Id }).promise();
+    await route53
       .createQueryLoggingConfig({
         HostedZoneId: Id,
         CloudWatchLogsLogGroupArn: ResourceProperties?.QueryLoggingConfig
@@ -81,7 +81,7 @@ export const updateHostedZone = async ({
     for (const vpc of oldVPCs) {
       if (!newVPCs.has(vpc)) {
         changes.push(
-          config.route53.disassociateVPCFromHostedZone({ HostedZoneId: Id, VPC: vpc }).promise()
+          route53.disassociateVPCFromHostedZone({ HostedZoneId: Id, VPC: vpc }).promise()
         );
       }
     }
@@ -89,7 +89,7 @@ export const updateHostedZone = async ({
     for (const vpc of newVPCs) {
       if (!oldVPCs.has(vpc)) {
         changes.push(
-          config.route53.associateVPCWithHostedZone({ HostedZoneId: Id, VPC: vpc }).promise()
+          route53.associateVPCWithHostedZone({ HostedZoneId: Id, VPC: vpc }).promise()
         );
       }
     }

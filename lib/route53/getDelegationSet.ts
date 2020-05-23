@@ -1,7 +1,7 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
-import { config } from "../../config";
+import { route53 } from "../../config";
 import { getHostedZoneForDomain } from "./getHostedZoneForDomain";
 
 const CALLER_REFERENCE = "nomad-devops-delegation-set";
@@ -10,7 +10,7 @@ export const getDelegationSet = async (domain: string): Promise<Route53.Delegati
   const existing = [] as Route53.DelegationSet[];
   let Marker: undefined | string;
   do {
-    const { DelegationSets, NextMarker } = await config.route53
+    const { DelegationSets, NextMarker } = await route53
       .listReusableDelegationSets({ Marker })
       .promise();
     debug("NextMarker: ", NextMarker);
@@ -30,6 +30,6 @@ export const getDelegationSet = async (domain: string): Promise<Route53.Delegati
   if (hostedZoneId?.Id) request.HostedZoneId = hostedZoneId.Id.split("/").pop();
   debug("CreateDelegationSetRequest: ", request);
 
-  const { DelegationSet } = await config.route53.createReusableDelegationSet(request).promise();
+  const { DelegationSet } = await route53.createReusableDelegationSet(request).promise();
   return DelegationSet;
 };

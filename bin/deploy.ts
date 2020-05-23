@@ -2,10 +2,11 @@ import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { generate } from "shortid";
 import { promises } from "fs";
+import { promisify } from "util";
 const { readFile } = promises;
 import JSZip from "jszip";
 const zip = new JSZip();
-import { s3, getKey, BUNDLE_FILENAME, BUNDLE_PATH, BUCKET_NAME, BUCKET_PREFIX } from "../config";
+import { s3, getKey, BUNDLE_PATH, BUCKET_NAME, BUCKET_PREFIX, BUNDLE_FILENAME } from "../config";
 import { build } from "./build";
 
 interface DeployParams {
@@ -16,10 +17,6 @@ interface DeployParams {
 export const deploy = async (params?: DeployParams) => {
   const { Bucket = BUCKET_NAME, Prefix = BUCKET_PREFIX } = params || {};
 
-  debug({ BUNDLE_PATH, params });
-  await build();
-  const bundle = readFile(BUNDLE_PATH);
-
   const { Contents = [] } = await s3.listObjects({ Bucket, Prefix }).promise();
   debug({ Contents });
 
@@ -29,9 +26,16 @@ export const deploy = async (params?: DeployParams) => {
     debug(results);
   }
 
-  zip.file(BUNDLE_FILENAME, await bundle);
+  debug({ BUNDLE_PATH, params });
+  await build();
 
+  const bundle = await readFile(BUNDLE_PATH);
   const Key = getKey(generate());
+  const Body = await zip.file(BUNDLE_FILENAME, bundle).generateAsync({
+    type: "binarystring",
+    mimeType: "application/javascript",
+    compression: "DEFLATE"
+  });
   debug(">>>\n>>> attemplting to upload bundle Key: ", Key);
 
   await s3
@@ -39,10 +43,7 @@ export const deploy = async (params?: DeployParams) => {
       Bucket,
       Key,
       ACL: "public-read",
-      Body: zip.generateAsync({
-        type: "binarystring",
-        compression: "DEFLATE"
-      })
+      Body
     })
     .promise();
 

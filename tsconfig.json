@@ -5,7 +5,7 @@
     "devops.ts",
     "bin/**/*", 
     "lib/**/*", 
-    "src/**/*", "templates/buildStackTemplate.ts", "templates/buildStack.ts",
+    "src/**/*",
     "templates/**/*",
     "test/**/*", 
     ],

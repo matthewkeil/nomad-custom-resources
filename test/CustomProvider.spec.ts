@@ -1,7 +1,7 @@
 import Axios from "axios";
 import { generate } from "shortid";
 import { s3, BUCKET_NAME } from "../config";
-import { send, CustomProvider, Results } from "./CustomProvider";
+import { send, CustomProvider } from "../src/CustomProvider";
 import {
   CloudFormationCustomResourceEvent,
   CloudFormationCustomResourceResponse,
@@ -199,7 +199,7 @@ describe("CustomResource", () => {
         })
       ).toBeInstanceOf(CustomProvider);
     });
-    it("should add a default 'throw' handler if invalid params are passed", async () => {
+    it("should add a default 'bad handler' that fail gracefully if invalid handlers are passed", async () => {
       const provider = new CustomProvider({} as any);
 
       let event = await generateEvent("Create");
@@ -243,7 +243,7 @@ describe("CustomResource", () => {
   });
   it("should safely deal with handlers that throw", async () => {
     const message = "errored good, yo'";
-    const errorHandler = async (event: CloudFormationCustomResourceEvent) => {
+    const errorHandler = async () => {
       throw new Error(message);
     };
     const errorProvider = new CustomProvider({

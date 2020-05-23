@@ -1,7 +1,7 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { ACM } from "aws-sdk";
-import { config } from "../../config";
+import { acm } from "../../config";
 
 export const updateCertificateTags = async ({
   CertificateArn,
@@ -10,7 +10,7 @@ export const updateCertificateTags = async ({
   CertificateArn: string;
   Tags: ACM.TagList;
 }) => {
-  const { Tags: old = [] } = await config.acm.listTagsForCertificate({ CertificateArn }).promise();
+  const { Tags: old = [] } = await acm.listTagsForCertificate({ CertificateArn }).promise();
   const oldTags = new Map(old.map(({ Key, Value }) => [Key, Value]));
   debug("oldTags: ", oldTags);
   const newTags = new Map(Tags.map(({ Key, Value }) => [Key, Value]));
@@ -37,10 +37,10 @@ export const updateCertificateTags = async ({
   debug("adds: ", adds);
   debug("deletes: ", deletes);
   const delPromise = deletes.length
-    ? config.acm.removeTagsFromCertificate({ CertificateArn, Tags: deletes }).promise()
+    ? acm.removeTagsFromCertificate({ CertificateArn, Tags: deletes }).promise()
     : Promise.resolve({});
   const addPromise = adds.length
-    ? config.acm.addTagsToCertificate({ CertificateArn, Tags: adds }).promise()
+    ? acm.addTagsToCertificate({ CertificateArn, Tags: adds }).promise()
     : Promise.resolve({});
   return await Promise.all([addPromise, delPromise]);
 };

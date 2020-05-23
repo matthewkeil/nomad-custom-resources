@@ -1,4 +1,4 @@
-export const normalizeDomain = (domain: string) =>
+export const normalizeDomain = (domain = "") =>
   domain
     .toLowerCase()
     .split(".")

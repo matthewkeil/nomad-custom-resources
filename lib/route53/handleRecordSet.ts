@@ -1,6 +1,6 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
-import { config } from "../../config";
+import { route53 } from "../../config";
 import { Route53 } from "aws-sdk";
 import { getHostedZoneForDomain } from "./getHostedZoneForDomain";
 
@@ -20,7 +20,7 @@ export const handleRecordSet = async (request: HandleRecordSetParams) => {
     debug("HostedZoneId: ", HostedZoneId);
   }
   if (!HostedZoneId) throw new Error("must supply either a valid HostedZoneId or a HostedZoneName");
-  return config.route53
+  return route53
     .changeResourceRecordSets({
       HostedZoneId,
       ChangeBatch: {

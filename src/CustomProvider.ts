@@ -115,6 +115,17 @@ export class CustomProvider {
     return response as CloudFormationCustomResourceSuccessResponse;
   }
 
+  public static handleError({
+    event,
+    Reason
+  }: {
+    event: CloudFormationCustomResourceEvent;
+    Reason: string;
+  }) {
+    const response = CustomProvider.prepareResponse(event, { Status: "FAILED", Reason });
+    return send({ url: event.ResponseURL, data: JSON.stringify(response) });
+  }
+
   private create: CreateEventHandler;
   private update: UpdateEventHandler;
   private delete: DeleteEventHandler;

@@ -1,4 +1,4 @@
-import { Debug } from "./debug";
+import { Debug } from "./utils";
 const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceEvent } from "aws-lambda";
 import {

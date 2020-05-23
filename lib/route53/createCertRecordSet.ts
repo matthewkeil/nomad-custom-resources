@@ -1,6 +1,6 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
-import { config } from "../../config";
+import { route53 } from "../../config";
 
 interface CertRecordSetParams {
   HostedZoneId: string;
@@ -13,7 +13,7 @@ export const createCertRecordSet = async ({
   recordSetName,
   recordSetValue
 }: CertRecordSetParams) => {
-  const { ResourceRecordSets } = await config.route53
+  const { ResourceRecordSets } = await route53
     .listResourceRecordSets({
       HostedZoneId,
       StartRecordName: recordSetName,
@@ -26,7 +26,7 @@ export const createCertRecordSet = async ({
     return;
   }
 
-  return config.route53
+  return route53
     .changeResourceRecordSets({
       HostedZoneId,
       ChangeBatch: {

@@ -1,10 +1,10 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { ACM } from "aws-sdk";
-import { config } from "../../config";
+import { acm } from "../../config";
 
-const organizeOptions = (Certificate: ACM.CertificateDetail) =>
-  Certificate.DomainValidationOptions.filter(
+const organizeOptions = (Certificate?: ACM.CertificateDetail) =>
+  Certificate?.DomainValidationOptions?.filter(
     opt => opt.DomainName === Certificate.DomainName && opt.ValidationMethod === "DNS"
   ).reduce(
     (all, opt) => {
@@ -30,11 +30,11 @@ const organizeOptions = (Certificate: ACM.CertificateDetail) =>
 
 async function* pollStatus(arn: string) {
   while (true) {
-    const { Certificate } = await config.acm.describeCertificate({ CertificateArn: arn }).promise();
-    const options = organizeOptions(Certificate);
+    const { Certificate } = await acm.describeCertificate({ CertificateArn: arn }).promise();
+    // const options = organizeOptions(Certificate);
     // const pending = !!options.pending?.length;
     // const failed = !!options.failed?.length;
-    yield Certificate.Status;
+    yield Certificate?.Status;
   }
 }
 

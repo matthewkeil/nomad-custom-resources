@@ -4,7 +4,9 @@
   "description": "CloudFormation Custom Resources built with TypeScript",
   "main": "index.js",
   "scripts": {
-    "build": "npm run ts bin/build",
+    "build": "npm run webpack",
+    "build-prod": "npm run ts bin/build",
+    "deploy": "npm run ts bin/deploy",
     "test": "NODE_ENV=testing node_modules/.bin/jest",
     "webpack": "npm run ts node_modules/.bin/webpack",
     "webpack-prod": "npm install && rm -rf dist 2> /dev/null && NODE_ENV=production npm run ts node_modules/.bin/webpack",
