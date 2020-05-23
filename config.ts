@@ -1,3 +1,5 @@
+import { Debug } from "./src/utils";
+const debug = Debug(__dirname, __filename);
 require("dotenv").config();
 import { execSync } from "child_process";
 import { resolve } from "path";
@@ -18,7 +20,7 @@ export const DEBUG = typeof process.env.DEBUG === "string" && !!process.env.DEBU
 export const PROD = process.env.NODE_ENV === "production";
 const TEST = process.env.NODE_ENV === "test";
 
-export const BUNDLE_FOLDER = process.env.BUNDLE_FOLDER || resolve(__dirname, "dist");
+export const BUNDLE_FOLDER = process.env.BUNDLE_FOLDER || resolve(__dirname, "build");
 export const BUNDLE_FILENAME = process.env.BUNDLE_FILENAME || "index.js";
 export const BUNDLE_PATH = resolve(...[BUNDLE_FOLDER, BUNDLE_FILENAME]);
 
@@ -37,7 +39,9 @@ let _uuid: string | number | undefined;
 export const getKey = (uuid?: string | number) => {
   if (uuid && !_uuid) _uuid = uuid; // make sure no conflicting uuids submitted during run
   if (PROD && !_uuid) _uuid = generate(); // if prod and no uuid set create shortid
-  return BUCKET_PREFIX + "/" + BUNDLE_PREFIX + _uuid ? `-${_uuid}` : "";
+  const key = BUCKET_PREFIX + "/" + BUNDLE_PREFIX + (_uuid ? `-${_uuid}` : "");
+  debug({ BUCKET_PREFIX, BUNDLE_PREFIX, uuid, key });
+  return key;
 };
 export const LAMBDA_TIMEOUT = 300; // in seconds
 

@@ -25,6 +25,7 @@
     "uuid": "^8.0.0"
   },
   "devDependencies": {
+    "@types/archiver": "^3.1.0",
     "@types/aws-lambda": "^8.10.51",
     "@types/debug": "^4.1.5",
     "@types/dotenv": "^8.2.0",
@@ -35,6 +36,7 @@
     "@types/webpack": "^4.41.13",
     "@typescript-eslint/eslint-plugin": "^2.6.1",
     "@typescript-eslint/parser": "^2.6.1",
+    "archiver": "^4.0.1",
     "cloudform": "^5.0.1",
     "debug": "^4.1.1",
     "eslint": "^6.6.0",
