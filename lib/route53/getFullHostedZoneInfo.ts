@@ -1,4 +1,4 @@
-import { Debug } from "../../src/debug";
+import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
 import { config } from "../../config";

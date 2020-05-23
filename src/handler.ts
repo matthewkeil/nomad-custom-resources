@@ -1,69 +1,40 @@
-import { Debug } from "./debug";
+import { Debug } from "./utils";
 const debug = Debug(__dirname, __filename);
-import {
-  CloudFormationCustomResourceHandler,
-  CloudFormationCustomResourceResponse,
-  CloudFormationCustomResourceEvent,
-  Context
-} from "aws-lambda";
-export type ResourceHandler = (
-  event: CloudFormationCustomResourceEvent,
-  context: Context
-) => Promise<CloudFormationCustomResourceResponse>;
-
-import axios from "axios";
-import { v4 } from "uuid";
-import { recordSetProvider } from "./recordSetProvider";
-import { hostedZoneProvider } from "./hostedZoneProvider";
-import { certificateProvider } from "./certificateProvider";
-import { certificateRequestProvider } from "./certificateRequestProvider";
+import { CloudFormationCustomResourceHandler } from "aws-lambda";
+import { CustomProvider } from "./CustomProvider";
+import { recordSetProvider } from "./RecordSetProvider";
+// import { hostedZoneProvider } from "./hostedZoneProvider";
+// import { certificateProvider } from "./certificateProvider";
+// import { certificateRequestProvider } from "./certificateRequestProvider";
 
 const resourceProviders = {
-  RecordSet: recordSetProvider,
-  HostedZone: hostedZoneProvider,
-  Certificate: certificateProvider,
-  CertificateRequest: certificateRequestProvider
-};
-type ResourceType = keyof typeof resourceProviders;
-const resourceTypes = new Set<ResourceType>(
-  Object.keys(resourceProviders) as (keyof typeof resourceProviders)[]
-);
+  RecordSet: recordSetProvider
+  // HostedZone: hostedZoneProvider,
+  // Certificate: certificateProvider,
+  // CertificateRequest: certificateRequestProvider
+} as const;
+export type CustomResource = keyof typeof resourceProviders;
 
-const sendResponse = ({
-  ResponseURL,
-  response
-}: {
-  ResponseURL: string;
-  response: CloudFormationCustomResourceResponse;
-}) =>
-  axios({
-    url: ResponseURL,
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Encoding": "utf8"
-    },
-    data: JSON.stringify(response)
-  });
+export const buildHandler = (resources: {
+  [resource: string]: CustomProvider;
+}): CloudFormationCustomResourceHandler => {
+  type Resource = keyof typeof resources;
 
-export const handler: CloudFormationCustomResourceHandler = async (event, context) => {
-  const RequestId = v4();
-  const type = event.ResourceType.split("::").pop() as ResourceType;
-  const { ResponseURL, StackId, LogicalResourceId } = event;
-  if (!resourceTypes.has(type)) {
-    await sendResponse({
-      ResponseURL,
-      response: {
+  const resourceTypes = new Set<Resource>(Object.keys(resources) as Resource[]);
+
+  return async (event, context) => {
+    debug({ event, context });
+    const type = event.ResourceType.split("::").pop() as Resource;
+    if (!resourceTypes.has(type)) {
+      await CustomProvider.sendResults(event, {
         Status: "FAILED",
-        Reason: "NomadDevops doesn't have that kind of custom resource",
-        PhysicalResourceId: LogicalResourceId,
-        StackId,
-        RequestId,
-        LogicalResourceId
-      }
-    });
-    return;
-  }
+        Reason: "NomadDevops doesn't have that kind of custom resource"
+      });
+      return;
+    }
 
-  await sendResponse({ ResponseURL, response: await resourceProviders[type](event, context) });
+    await resources[type].handle(event);
+  };
 };
+
+export const handler = buildHandler(resourceProviders);

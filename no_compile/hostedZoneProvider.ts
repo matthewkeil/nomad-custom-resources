@@ -1,7 +1,7 @@
-import { Debug } from "./debug";
+import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceResponse } from "aws-lambda";
-import { ResourceHandler } from "./handler";
+import { ResourceHandler } from "../src/handler";
 import {
   createHostedZone,
   updateHostedZone,

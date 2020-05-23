@@ -1,50 +1,30 @@
 import { Debug } from "./debug";
 const debug = Debug(__dirname, __filename);
-import { CloudFormationCustomResourceResponse } from "aws-lambda";
-import { ResourceHandler } from "./handler";
+import { CloudFormationCustomResourceEvent } from "aws-lambda";
+import {
+  CustomProvider,
+  CreateEventHandler,
+  UpdateEventHandler,
+  DeleteEventHandler
+} from "./CustomProvider";
+import { handleRecordSet } from "../lib/route53";
 
-export const recordSetProvider: ResourceHandler = async event => {
-  try {
-    let results;
-    let recordInfo;
-    switch (event.RequestType.toLowerCase()) {
-      case "create":
-        break;
-      case "update":
-        break;
-      case "delete":
-        break;
-      default:
-        return Promise.resolve({
-          Status: "FAILED",
-          RequestId: event.RequestId,
-          StackId: event.StackId,
-          PhysicalResourceId: "NomadDevops::RecordSet",
-          LogicalResourceId: event.LogicalResourceId,
-          Reason: "invalid event.RequestType"
-        });
+const hanldleEvent = async (event: CloudFormationCustomResourceEvent) => {
+  const response = await handleRecordSet({
+    ...(event.ResourceProperties as any),
+    RequestType: event.RequestType
+  });
+  debug("ChangeInfo: ", response?.ChangeInfo);
+  return {
+    Status: "SUCCESS",
+    Data: {
+      Name: event.ResourceProperties.Name
     }
-    debug(results);
-
-    const response: CloudFormationCustomResourceResponse = {
-      Status: "SUCCESS",
-      RequestId: event.RequestId,
-      StackId: event.StackId,
-      PhysicalResourceId: "NomadDevops::RecordSet",
-      LogicalResourceId: event.LogicalResourceId
-    };
-    if (recordInfo) {
-      response.Data = {};
-    }
-    return response;
-  } catch (err) {
-    return {
-      Status: "FAILED",
-      RequestId: event.RequestId,
-      StackId: event.StackId,
-      PhysicalResourceId: "NomadDevops::RecordSet",
-      LogicalResourceId: event.LogicalResourceId,
-      Reason: JSON.stringify(err)
-    };
-  }
+  };
 };
+
+export const recordSetProvider = new CustomProvider({
+  create: hanldleEvent as CreateEventHandler,
+  update: hanldleEvent as UpdateEventHandler,
+  delete: hanldleEvent as DeleteEventHandler
+});

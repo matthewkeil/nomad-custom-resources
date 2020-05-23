@@ -1,4 +1,4 @@
-import { Debug } from "./debug";
+import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { ACM } from "aws-sdk";
 import {
@@ -6,7 +6,7 @@ import {
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
 import { getCertificateForDomain, updateCertificate, requestCertificate } from "../lib";
-import { ResourceHandler } from "./handler";
+import { ResourceHandler } from "../src/handler";
 import { config } from "../config";
 
 const handleCertificateRequestUpdate = async ({

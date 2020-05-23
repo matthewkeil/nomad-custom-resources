@@ -1,10 +1,10 @@
-import { Debug } from "./debug";
+import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import {
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
-import { ResourceHandler } from "./handler";
+import { ResourceHandler } from "../src/handler";
 import { getIssuedCertificate, getCertificateForDomain } from "../lib";
 
 export const certificateProvider: ResourceHandler = async event => {

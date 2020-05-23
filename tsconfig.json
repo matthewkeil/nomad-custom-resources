@@ -2,9 +2,12 @@
   "include": [
     "config.ts",
     "webpack.config.ts",
+    "devops.ts",
     "bin/**/*", 
     "lib/**/*", 
-    "src/**/*", 
+    "src/**/*", "templates/buildStackTemplate.ts", "templates/buildStack.ts",
+    "templates/**/*",
+    "test/**/*", 
     ],
   "exclude": ["node_modules"],
   "compilerOptions": {
@@ -20,9 +23,8 @@
     "declaration": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "outDir": "dist",
-    "types": ["node"],
+    "outDir": "build",
+    "types": ["node", "jest"],
     "typeRoots": ["node_modules/@types"]
   }
 }
