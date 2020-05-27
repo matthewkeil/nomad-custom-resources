@@ -1,4 +1,4 @@
-import { Debug } from "./utils";
+import { Debug } from "../utils";
 const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceEvent } from "aws-lambda";
 import {
@@ -6,8 +6,8 @@ import {
   CreateEventHandler,
   UpdateEventHandler,
   DeleteEventHandler
-} from "./CustomProvider";
-import { handleRecordSet } from "../lib/route53";
+} from "../CustomProvider";
+import { handleRecordSet } from "../../lib/route53";
 
 const hanldleEvent = async (event: CloudFormationCustomResourceEvent) => {
   const response = await handleRecordSet({

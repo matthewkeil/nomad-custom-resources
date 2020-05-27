@@ -4,7 +4,7 @@ import { BRANCH } from "../config";
 const logsStatement = {
   Effect: "Allow",
   Action: "logs:*",
-  Resource: Fn.GetAtt("CustomResourceProviderLogGroup", "Arn")
+  Resource: "*"
 };
 const acmStatement = {
   Effect: "Allow",
@@ -50,7 +50,7 @@ const route53Statement = {
 };
 
 export const CustomResourceProviderRole = new IAM.Role({
-  RoleName: "nomad-custom-resource-provider-role".concat(BRANCH ? `${BRANCH}` : ""),
+  RoleName: Fn.Join("", ["nomad-custom-resource-provider-role", Fn.Ref("UUID")]),
   AssumeRolePolicyDocument: {
     Version: "2012-10-17",
     Statement: [
@@ -65,7 +65,7 @@ export const CustomResourceProviderRole = new IAM.Role({
   },
   Policies: [
     {
-      PolicyName: "nomad-custom-resource-provider-policy".concat(BRANCH ? `${BRANCH}` : ""),
+      PolicyName: Fn.Join("", ["nomad-custom-resource-provider-policy", Fn.Ref("UUID")]),
       PolicyDocument: {
         Version: "2012-10-17",
         Statement: [logsStatement, acmStatement, route53Statement]

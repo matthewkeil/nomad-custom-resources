@@ -10,7 +10,8 @@ import {
   CloudFormationCustomResourceEvent,
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceFailedResponse,
-  CloudFormationCustomResourceSuccessResponse
+  CloudFormationCustomResourceSuccessResponse,
+  Context
 } from "aws-lambda";
 import { PROD } from "../config";
 
@@ -42,8 +43,21 @@ export interface CustomProviderParams {
   delete: DeleteEventHandler;
 }
 
-export function send({ url, data }: { url: string; data: string }) {
-  return new Promise<number>((resolve, reject) => {
+interface SendResponseParams {
+  url: string;
+  data: string;
+}
+interface HandlerResponse {
+  statusCode: number;
+  data?: CloudFormationCustomResourceResponse;
+}
+
+export function mockSend({ data }: SendResponseParams) {
+  return Promise.resolve({ statusCode: 200, data: JSON.parse(data) });
+}
+
+export function send({ url, data }: SendResponseParams) {
+  return new Promise<HandlerResponse>((resolve, reject) => {
     const { host, path } = parse(url);
     debug({ url, host, path });
 
@@ -60,7 +74,7 @@ export function send({ url, data }: { url: string; data: string }) {
       },
       response => {
         debug("response: ", response);
-        resolve(response.statusCode);
+        resolve({ statusCode: response.statusCode || 500 });
       }
     );
     debug("req: ", req);
@@ -122,16 +136,19 @@ export class CustomProvider {
     event: CloudFormationCustomResourceEvent;
     Reason: string;
   }) {
+    debug("handleError: ", { event, Reason });
     const response = CustomProvider.prepareResponse(event, { Status: "FAILED", Reason });
     return send({ url: event.ResponseURL, data: JSON.stringify(response) });
   }
 
+  private _send: typeof send;
   private create: CreateEventHandler;
   private update: UpdateEventHandler;
   private delete: DeleteEventHandler;
 
   constructor(params: CustomProviderParams) {
-    const { create, update, delete: DELETE } = params || {};
+    debug("constructor params: ", { params });
+    const { create, update, delete: DELETE, MOCK_SEND } = (params || {}) as any;
     if (typeof create !== "function" || create.length !== 1)
       debug("create handler must be a function. usind default 'fail' handler");
     if (typeof update !== "function" || update.length !== 1)
@@ -141,41 +158,58 @@ export class CustomProvider {
     this.create = !!create ? create : defaultHandler("create");
     this.update = !!update ? update : defaultHandler("update");
     this.delete = !!DELETE ? DELETE : defaultHandler("delete");
+    this._send = !!MOCK_SEND ? mockSend : send;
     Object.freeze(this);
   }
 
-  public async handle(event: CloudFormationCustomResourceEvent): Promise<void> {
-    let response!: CloudFormationCustomResourceResponse;
-    try {
-      debug(event);
-      let results: Results;
-      switch (event.RequestType) {
-        case "Create":
-          results = await this.create(event);
-          break;
-        case "Update":
-          results = await this.update(event);
-          break;
-        case "Delete":
-          results = await this.delete(event);
-          break;
-        default:
-          results = {
+  public handle = (
+    event: CloudFormationCustomResourceEvent,
+    context?: Context
+  ): Promise<HandlerResponse> =>
+    new Promise(async resolve => {
+      let timer: undefined | NodeJS.Timeout;
+      if (!!context) {
+        timer = setTimeout(async () => {
+          const res = CustomProvider.prepareResponse(event, {
             Status: "FAILED",
-            Reason: "invalid event.RequestType"
-          };
+            Reason: "resource provider timed out"
+          });
+          resolve(await this._send({ url: event.ResponseURL, data: JSON.stringify(res) }));
+        }, context.getRemainingTimeInMillis() - 1000);
       }
-      debug(results);
-      response = CustomProvider.prepareResponse(event, results as Results);
-    } catch (err) {
-      debug(err);
-      response = CustomProvider.prepareResponse(event, {
-        Status: "FAILED",
-        Reason: PROD ? "unknown error occured" : err.message
-      });
-    } finally {
-      debug(response);
-      await send({ url: event.ResponseURL, data: JSON.stringify(response) });
-    }
-  }
+
+      let response!: CloudFormationCustomResourceResponse;
+      try {
+        debug({ event });
+        let results: Results;
+        switch (event.RequestType) {
+          case "Create":
+            results = await this.create(event);
+            break;
+          case "Update":
+            results = await this.update(event);
+            break;
+          case "Delete":
+            results = await this.delete(event);
+            break;
+          default:
+            results = {
+              Status: "FAILED",
+              Reason: "invalid event.RequestType"
+            };
+        }
+        debug({ results });
+        response = CustomProvider.prepareResponse(event, results as Results);
+      } catch (err) {
+        debug({ err });
+        response = CustomProvider.prepareResponse(event, {
+          Status: "FAILED",
+          Reason: PROD ? "unknown error occured" : err.message
+        });
+      } finally {
+        debug({ response });
+        if (timer) clearTimeout(timer);
+        resolve(await this._send({ url: event.ResponseURL, data: JSON.stringify(response) }));
+      }
+    });
 }

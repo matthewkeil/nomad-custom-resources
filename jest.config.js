@@ -1,5 +1,6 @@
+process.env.NODE_ENV = "testing";
 module.exports = {
-  roots: ["src/"],
+  roots: ["./"],
   preset: "ts-jest",
   testEnvironment: "node"
 };

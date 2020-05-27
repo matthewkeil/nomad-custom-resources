@@ -1,7 +1,6 @@
 import { Debug } from "../../src/utils";
 const debug = Debug(__dirname, __filename);
 import { Route53 } from "aws-sdk";
-import { v4 } from "uuid";
 import { route53 } from "../../config";
 import { HostedZoneParams } from "./HostedZoneParams";
 import { getDelegationSet } from "./getDelegationSet";
@@ -13,7 +12,7 @@ interface CreateHostedZoneParams {
 }
 
 export const createHostedZone = async ({
-  RequestId = v4(),
+  RequestId,
   ResourceProperties
 }: CreateHostedZoneParams): Promise<HostedZoneParams> => {
   const {

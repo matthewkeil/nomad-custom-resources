@@ -4,13 +4,15 @@
   "description": "CloudFormation Custom Resources built with TypeScript",
   "main": "index.js",
   "scripts": {
-    "build": "npm run webpack",
-    "build-prod": "npm run ts bin/build",
+    "clean-dist": "rm -rf dist 2> /dev/null",
+    "clean-build": "rm -rf build 2> /dev/null",
+    "clean-nm": "rm -rf node_modules 2> /dev/null",
+    "build-dev": "npm run webpack",
+    "build": "NODE_ENV=production npm run webpack",
     "deploy": "npm run ts bin/deploy",
+    "deploy-prod": "npm run clean-nm && npm install && npm run build-prod && npm run deploy",
     "test": "NODE_ENV=testing node_modules/.bin/jest",
     "webpack": "npm run ts node_modules/.bin/webpack",
-    "webpack-prod": "npm install && rm -rf dist 2> /dev/null && NODE_ENV=production npm run ts node_modules/.bin/webpack",
-    "preinstall": "rm -rf node_modules",
     "node": "node",
     "ts": "npm run node -- -r ts-node/register",
     "debug": "npm run ts --inspect-brk"
@@ -19,10 +21,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.678.0",
-    "axios": "^0.19.2",
-    "dotenv": "^8.2.0",
-    "uuid": "^8.0.0"
+    "shortid": "^2.2.15",
+    "debug": "^4.1.1"
   },
   "devDependencies": {
     "@types/archiver": "^3.1.0",
@@ -36,9 +36,11 @@
     "@types/webpack": "^4.41.13",
     "@typescript-eslint/eslint-plugin": "^2.6.1",
     "@typescript-eslint/parser": "^2.6.1",
+    "axios": "^0.19.2",
+    "aws-sdk": "^2.678.0",
     "archiver": "^4.0.1",
     "cloudform": "^5.0.1",
-    "debug": "^4.1.1",
+    "dotenv": "^8.2.0",
     "eslint": "^6.6.0",
     "eslint-config-prettier": "^6.5.0",
     "eslint-plugin-prettier": "^3.1.1",
@@ -48,12 +50,12 @@
     "nomad-devops": "git+https://github.com/matthewkeil/nomad-devops.git",
     "prettier": "^1.17.1",
     "shebang-loader": "0.0.1",
-    "shortid": "^2.2.15",
     "string-replace-loader": "^2.3.0",
     "ts-jest": "^26.0.0",
     "ts-loader": "^7.0.4",
     "ts-node": "^8.10.1",
     "typescript": "^3.9.2",
+    "uuid": "^8.0.0",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11"
   }

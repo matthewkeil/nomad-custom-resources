@@ -1,77 +1,7 @@
 import Axios from "axios";
-import { generate } from "shortid";
-import { s3, BUCKET_NAME } from "../config";
+import { getKey, BUCKET_NAME } from "../config";
 import { send, CustomProvider } from "../src/CustomProvider";
-import {
-  CloudFormationCustomResourceEvent,
-  CloudFormationCustomResourceResponse,
-  CloudFormationCustomResourceUpdateEvent
-} from "aws-lambda";
-
-const RUN_PREFIX = generate();
-console.log({ RUN_PREFIX });
-
-const getKey = ({ Key }: { Key: string }) => `testing/${RUN_PREFIX}/${Key}`;
-
-const getUrl = ({ Key }: { Key: string }) =>
-  s3.getSignedUrlPromise("putObject", { Bucket: BUCKET_NAME, Key: getKey({ Key }) });
-
-const getResponse = async ({ Key }: { Key: string }) => {
-  const { Body = Buffer.from("{}") } = await s3
-    .getObject({ Bucket: BUCKET_NAME, Key: getKey({ Key }) })
-    .promise();
-  return JSON.parse(Body.toString()) as CloudFormationCustomResourceResponse;
-};
-
-const deleteObject = async ({ Key }: { Key: string }) => {
-  try {
-    return s3
-      .deleteObject({
-        Bucket: BUCKET_NAME,
-        Key: getKey({ Key })
-      })
-      .promise();
-  } catch {}
-};
-
-const generateEvent = async (
-  type?: CloudFormationCustomResourceEvent["RequestType"]
-): Promise<CloudFormationCustomResourceUpdateEvent> => {
-  const RequestId = generate();
-  const ResourceType = "Testing";
-  const LogicalResourceId = `Custom::${ResourceType}`;
-  const baseRequest = {
-    RequestId,
-    ResourceType,
-    LogicalResourceId,
-    ServiceToken: "testing",
-    StackId: "testing-testing-testing-yo",
-    ResponseURL: await getUrl({ Key: RequestId }),
-    ResourceProperties: {
-      ServiceToken: "testing"
-    }
-  };
-  switch (type) {
-    case "Delete":
-      return {
-        ...baseRequest,
-        PhysicalResourceId: `${LogicalResourceId}-${RequestId}`,
-        RequestType: "Delete"
-      } as any;
-    case "Update":
-      return {
-        ...baseRequest,
-        PhysicalResourceId: `${LogicalResourceId}-${RequestId}`,
-        OldResourceProperties: {},
-        RequestType: "Update"
-      } as any;
-    default:
-      return {
-        ...baseRequest,
-        RequestType: "Create"
-      } as any;
-  }
-};
+import { getUrl, getResponse, deleteObject, generateEvent, RUN_PREFIX } from "../test/utils";
 
 it("test bucket should be setup correctly", async () => {
   expect.assertions(2);
@@ -80,8 +10,8 @@ it("test bucket should be setup correctly", async () => {
    * Make sure test bucket is setup correctly
    *
    */
-  const Key = "testObject";
-  const tryPut = (url = `https://${BUCKET_NAME}.s3.amazonaws.com/${getKey({ Key })}`) =>
+  const { Key } = getKey(undefined, RUN_PREFIX);
+  const tryPut = (url = `https://${BUCKET_NAME}.s3.amazonaws.com/${Key}`) =>
     Axios({
       url,
       method: "PUT",
@@ -112,7 +42,7 @@ it("send() should PUT to presigned url", async done => {
   const Key = "testSend";
   const url = await getUrl({ Key });
   const response = await send({ url, data: "" });
-  expect(response).toEqual(200);
+  expect(response).toEqual({ statusCode: 200 });
   await deleteObject({ Key });
   done();
 });
@@ -193,13 +123,32 @@ describe("CustomResource", () => {
       ).toBeInstanceOf(CustomProvider);
       expect(
         new CustomProvider({
-          create: ((a: any, b: any) => ({})) as any,
-          update: ((a: any, b: any) => ({})) as any,
-          delete: ((a: any, b: any) => ({})) as any
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          create: ((_: any, __: any) => ({})) as any,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          update: ((_: any, __: any) => ({})) as any,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          delete: ((_: any, __: any) => ({})) as any
         })
       ).toBeInstanceOf(CustomProvider);
     });
-    it("should add a default 'bad handler' that fail gracefully if invalid handlers are passed", async () => {
+  });
+  describe("customResource.handle()", () => {
+    it("should throw for invalid RequestType", async () => {
+      const provider = new CustomProvider({
+        create: undefined as any,
+        update: undefined as any,
+        delete: undefined as any
+      });
+      const event = await generateEvent("Update");
+      const Key = event.RequestId;
+      event.RequestType = "NOTVALID" as any;
+      await provider.handle(event);
+      const response = await getResponse({ Key });
+      expect(response.Reason).toEqual("invalid event.RequestType");
+      await deleteObject({ Key });
+    });
+    it("should add a default 'bad handler' for invalid handlers", async () => {
       const provider = new CustomProvider({} as any);
 
       let event = await generateEvent("Create");
@@ -226,36 +175,22 @@ describe("CustomResource", () => {
       expect(response.Status).toEqual("FAILED");
       await deleteObject({ Key });
     });
-  });
-  it("should throw for invalid RequestType", async () => {
-    const provider = new CustomProvider({
-      create: undefined as any,
-      update: undefined as any,
-      delete: undefined as any
+    it("should safely deal with handlers that throw", async () => {
+      const message = "errored good, yo'";
+      const errorHandler = async () => {
+        throw new Error(message);
+      };
+      const errorProvider = new CustomProvider({
+        create: errorHandler,
+        update: errorHandler,
+        delete: errorHandler
+      });
+      const event = await generateEvent("Update");
+      const Key = event.RequestId;
+      await errorProvider.handle(event);
+      const response = await getResponse({ Key });
+      expect(response.Reason).toEqual(message);
+      await deleteObject({ Key });
     });
-    const event = await generateEvent("Update");
-    const Key = event.RequestId;
-    event.RequestType = "NOTVALID" as any;
-    await provider.handle(event);
-    const response = await getResponse({ Key });
-    expect(response.Reason).toEqual("invalid event.RequestType");
-    await deleteObject({ Key });
-  });
-  it("should safely deal with handlers that throw", async () => {
-    const message = "errored good, yo'";
-    const errorHandler = async () => {
-      throw new Error(message);
-    };
-    const errorProvider = new CustomProvider({
-      create: errorHandler,
-      update: errorHandler,
-      delete: errorHandler
-    });
-    const event = await generateEvent("Update");
-    const Key = event.RequestId;
-    await errorProvider.handle(event);
-    const response = await getResponse({ Key });
-    expect(response.Reason).toEqual(message);
-    await deleteObject({ Key });
   });
 });

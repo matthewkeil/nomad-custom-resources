@@ -1,5 +1,5 @@
 import { Lambda, Fn } from "cloudform";
-import { getKey, BRANCH, BUCKET_NAME, BUNDLE_FILENAME, LAMBDA_TIMEOUT } from "../config";
+import { FILENAME, LAMBDA_TIMEOUT, TEST } from "../config";
 
 let Environment;
 if (typeof process.env.DEBUG === "string" && process.env.DEBUG.length) {
@@ -13,15 +13,15 @@ if (typeof process.env.DEBUG === "string" && process.env.DEBUG.length) {
 
 export const CustomResourceProvider = new Lambda.Function({
   Description: "Nomad Devops CloudFormation Custom::Respource Provider",
-  FunctionName: "nomad-custom-resource-provider".concat(BRANCH ? `${BRANCH}` : ""),
+  FunctionName: Fn.Join("", ["nomad-custom-resource-provider", Fn.Ref("UUID")]),
   Role: Fn.GetAtt("CustomResourceProviderRole", "Arn"),
   Runtime: "nodejs12.x",
   Code: {
-    S3Bucket: BUCKET_NAME,
-    S3Key: getKey()
+    S3Bucket: Fn.Ref("S3Bucket"),
+    S3Key: Fn.Ref("S3Key")
   },
   Timeout: LAMBDA_TIMEOUT,
-  Handler: `${BUNDLE_FILENAME}.handler`,
+  Handler: `${FILENAME}.${TEST ? "mockHandler" : "handler"}`,
   MemorySize: 128,
   Environment
 }).dependsOn("CustomResourceProviderRole");

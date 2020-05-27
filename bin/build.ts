@@ -2,10 +2,6 @@ import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { exec } from "child_process";
 
-const buildStackTemplate = async () => {
-  
-};
-
 export const build = async () => {
   await new Promise((resolve, reject) => {
     console.log("running build command");
@@ -24,7 +20,6 @@ export const build = async () => {
       resolve();
     });
   });
-  await buildStackTemplate();
 };
 
 if (require.main === module) {

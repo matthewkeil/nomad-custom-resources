@@ -1,24 +1,21 @@
 import { resolve } from "path";
 import { Configuration } from "webpack";
-import { BUNDLE_FOLDER, BUNDLE_FILENAME } from "./config";
-
-const PROD = process.env.NODE_ENV === "production";
+import { PROD, BUILD_FOLDER, FILENAME } from "./config";
 
 const config: Configuration = {
   mode: PROD ? "production" : "development",
   target: "node",
-  devtool: PROD ? undefined : "eval-source-map",
   entry: resolve(__dirname, "src", "handler.ts"),
   output: {
-    path: BUNDLE_FOLDER,
-    filename: BUNDLE_FILENAME,
+    path: BUILD_FOLDER,
+    filename: FILENAME,
     libraryTarget: "commonjs"
   },
   resolve: {
     modules: ["node_modules"],
     extensions: [".ts", ".js", ".json"]
   },
-  externals: [],
+  externals: ["aws-sdk"],
   module: {
     rules: [
       {
@@ -28,7 +25,7 @@ const config: Configuration = {
           {
             loader: "ts-loader",
             options: {
-              configFile: "tsconfig.prod.json"
+              configFile: "tsconfig.webpack.json"
             }
           }
         ]
@@ -44,5 +41,9 @@ const config: Configuration = {
     ]
   }
 };
+
+if (PROD) {
+  config.devtool = "eval-source-map";
+}
 
 export default config;

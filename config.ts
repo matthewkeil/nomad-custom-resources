@@ -15,33 +15,44 @@ export const getBranch = () => {
   return results[1];
 };
 
-export const BRANCH = getBranch();
+export const BRANCH = process.env.BRANCH || getBranch();
 export const DEBUG = typeof process.env.DEBUG === "string" && !!process.env.DEBUG.length;
 export const PROD = process.env.NODE_ENV === "production";
-const TEST = process.env.NODE_ENV === "test";
+export const TEST = process.env.NODE_ENV === "testing";
 
-export const BUNDLE_FOLDER = process.env.BUNDLE_FOLDER || resolve(__dirname, "build");
-export const BUNDLE_FILENAME = process.env.BUNDLE_FILENAME || "index.js";
-export const BUNDLE_PATH = resolve(...[BUNDLE_FOLDER, BUNDLE_FILENAME]);
+const DIST = process.env.DIST_FOLDER || resolve(__dirname, "dist");
+const BUILD = process.env.BUILD_FOLDER || resolve(__dirname, "build");
+export const BUILD_FOLDER = PROD ? DIST : BUILD;
+export const FILENAME = process.env.BUNDLE_FILENAME || "index.js";
+export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME]);
 
 export const BUCKET_NAME = process.env.PUBLIC_BUCKET || "nomad-custom-resources";
 const BUCKET_PREFIX_PROD = process.env.BUCKET_PREFIX_PROD || "resources/custom";
 const BUCKET_PREFIX_TEST = process.env.BUCKET_PREFIX_TEST || "resources/testing";
-const BUCKET_PREFIX_DEFAULT = process.env.BUCKET_PREFIX || "resources/dev";
+const BUCKET_PREFIX_DEFAULT =
+  process.env.BUCKET_PREFIX || process.env.BUCKET_PREFIX_DEFAULT || "resources/dev";
 export const BUCKET_PREFIX = PROD
   ? BUCKET_PREFIX_PROD
   : TEST
   ? BUCKET_PREFIX_TEST
   : BUCKET_PREFIX_DEFAULT;
-export const BUNDLE_PREFIX = process.env.BUNDLE_PREFIX || "nomad-custom-resources";
 
-let _uuid: string | number | undefined;
-export const getKey = (uuid?: string | number) => {
-  if (uuid && !_uuid) _uuid = uuid; // make sure no conflicting uuids submitted during run
-  if (PROD && !_uuid) _uuid = generate(); // if prod and no uuid set create shortid
-  const key = BUCKET_PREFIX + "/" + BUNDLE_PREFIX + (_uuid ? `-${_uuid}` : "");
-  debug({ BUCKET_PREFIX, BUNDLE_PREFIX, uuid, key });
-  return key;
+export const getKey = (uuid?: string, runId?: string) => {
+  const _uuid = uuid ? uuid : generate(); // if prod and no uuid set create shortid
+  let key = BUCKET_PREFIX + "/";
+  if (runId) key += `${runId}/`;
+  key += _uuid;
+  debug({ BUCKET_PREFIX, uuid, key });
+  return {
+    uuid,
+    runId,
+    Prefix: BUCKET_PREFIX,
+    Key: key
+  };
+};
+
+export const getTemplateKey = () => {
+  return `${BUCKET_PREFIX}/cloudformation.json`;
 };
 export const LAMBDA_TIMEOUT = 300; // in seconds
 

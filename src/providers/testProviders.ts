@@ -1,4 +1,4 @@
-import { Debug } from "../src/utils";
+import { Debug } from "../utils";
 const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceEvent } from "aws-lambda";
 import {
@@ -6,7 +6,7 @@ import {
   CreateEventHandler,
   UpdateEventHandler,
   DeleteEventHandler
-} from "../src/CustomProvider";
+} from "../CustomProvider";
 
 const hanldleEvent = (params?: { throwErr?: boolean; error?: boolean }) => async (
   event: CloudFormationCustomResourceEvent
@@ -44,8 +44,8 @@ const ThrowErrorProvider = new CustomProvider({
   delete: hanldleEvent({ throwErr: true, error: true }) as DeleteEventHandler
 });
 
-export const testResources = {
-  Success: SuccessProvider,
+export const testProviders = {
   Error: ErrorProvider,
-  ThrowErrorProvider: ThrowErrorProvider
+  Success: SuccessProvider,
+  ThrowError: ThrowErrorProvider
 };
