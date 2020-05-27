@@ -21,7 +21,7 @@ export const CustomResourceProvider = new Lambda.Function({
     S3Key: Fn.Ref("S3Key")
   },
   Timeout: LAMBDA_TIMEOUT,
-  Handler: `${FILENAME}.${TEST ? "mockHandler" : "handler"}`,
+  Handler: `${FILENAME.split(".").shift()}.${TEST ? "mockHandler" : "handler"}`,
   MemorySize: 128,
   Environment
 }).dependsOn("CustomResourceProviderRole");

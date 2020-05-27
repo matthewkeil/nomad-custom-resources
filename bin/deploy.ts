@@ -13,7 +13,8 @@ import {
   BUNDLE_PATH,
   BUCKET_NAME,
   BUCKET_PREFIX,
-  FILENAME
+  FILENAME,
+  PROD
 } from "../config";
 import { build } from "./build";
 import { buildTemplate } from "../templates/buildTemplate";
@@ -46,20 +47,27 @@ export const deploy = async (params?: { Bucket?: string; Prefix?: string }) => {
   archive.pipe(createWriteStream(zipFile));
   archive.pipe(streamToS3({ Key }));
 
+  // add archive version of template to bundle for long term storage
+  // and upload most current template to default template location
   const templateName = uuid + ".json";
   const templatePath = BUILD_FOLDER + sep + templateName;
-  const template = buildTemplate({ Bucket, Key: `${Key}.json` });
+  const templateKey = getTemplateKey();
+  let template = buildTemplate({ Bucket, Key });
+  // minify template in production
+  if (PROD) template = JSON.stringify(JSON.parse(template));
   archive.append(template, { name: "cloudformation.json" });
-  const templateSave = writeFile(templatePath, JSON.stringify(JSON.parse(template)));
+  const templateSave = await writeFile(templatePath, template);
   const templateUpload = s3
     .putObject({
       Bucket,
-      Key: getTemplateKey(),
+      Key: templateKey,
       Body: template,
       ACL: "public-read"
     })
     .promise();
 
+  // build process outputs /${BUNDLE_PATH}/${FILENAME} as the primary artifact
+  // TODO: is there a way to get a streamed bundle from webpack?
   await build();
   archive.append(createReadStream(BUNDLE_PATH), { name: FILENAME });
   await Promise.all([templateSave, templateUpload, archive.finalize()]);
@@ -70,6 +78,7 @@ export const deploy = async (params?: { Bucket?: string; Prefix?: string }) => {
 >>> zipped both: ${zipFile}
 >>> to Bucket: ${Bucket}
 >>> as Key: ${Key}
+>>> and: ${templateKey}
 >>>`);
 
   return {

@@ -26,7 +26,7 @@ export const BUILD_FOLDER = PROD ? DIST : BUILD;
 export const FILENAME = process.env.BUNDLE_FILENAME || "index.js";
 export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME]);
 
-export const BUCKET_NAME = process.env.PUBLIC_BUCKET || "nomad-custom-resources";
+export const BUCKET_NAME = process.env.PUBLIC_BUCKET || "nomad-devops";
 const BUCKET_PREFIX_PROD = process.env.BUCKET_PREFIX_PROD || "resources/custom";
 const BUCKET_PREFIX_TEST = process.env.BUCKET_PREFIX_TEST || "resources/testing";
 const BUCKET_PREFIX_DEFAULT =

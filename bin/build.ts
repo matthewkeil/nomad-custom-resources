@@ -1,11 +1,18 @@
 import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { exec } from "child_process";
+import { PROD, TEST } from "../config";
 
-export const build = async () => {
+export const build = async (
+  env: "development" | "testing" | "production" = PROD
+    ? "production"
+    : TEST
+    ? "testing"
+    : "development"
+) => {
   await new Promise((resolve, reject) => {
     console.log("running build command");
-    const buildProcess = exec("npm run webpack-prod");
+    const buildProcess = exec(`NODE_ENV=${env} npm run webpack`);
     buildProcess.stdout?.pipe(process.stdout);
     buildProcess.stderr?.pipe(process.stderr);
     buildProcess.on("err", err => {

@@ -2,7 +2,7 @@ import CF, { Fn } from "cloudform";
 import { CustomResourceProvider } from "./CustomResourceProvider";
 import { CustomResourceProviderLogGroup } from "./CustomResourceProviderLogGroup";
 import { CustomResourceProviderRole } from "./CustomResourceProviderRole";
-import { BUCKET_NAME } from "../config";
+import { BUCKET_NAME, PROD } from "../config";
 
 export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; Key: string }) => {
   const uuid = Key.split(".")
@@ -25,7 +25,7 @@ export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; 
       },
       UUID: {
         Type: "String",
-        Default: !!uuid ? `-${uuid}` : ""
+        Default: PROD ? "" : `-${uuid}`
       }
     },
     Resources: {
