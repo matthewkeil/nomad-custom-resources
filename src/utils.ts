@@ -20,6 +20,5 @@ export const Debug = (dirName = "", fileName = "") => {
         )
     )
     .join(":");
-  debug({ dirName, fileName, ROOT, path });
   return DEBUG(path);
 };

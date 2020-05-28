@@ -1,10 +1,10 @@
 import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
-import { createWriteStream, createReadStream } from "fs";
-import { writeFile } from "fs/promises";
-import { PassThrough } from "stream";
 import { sep } from "path";
+import { Readable, PassThrough } from "stream";
+import { createWriteStream, createReadStream } from "fs";
 import { generate } from "shortid";
+import Archiver from "archiver";
 import {
   s3,
   getKey,
@@ -13,80 +13,114 @@ import {
   BUNDLE_PATH,
   BUCKET_NAME,
   BUCKET_PREFIX,
-  FILENAME,
-  PROD
+  NODE_ENV,
+  FILENAME
 } from "../config";
 import { build } from "./build";
 import { buildTemplate } from "../templates/buildTemplate";
 
-import Archiver from "archiver";
-const archive = Archiver("zip", { zlib: { level: 9 } });
-archive.on("error", err => {
-  console.log(err);
-});
+const Bucket = BUCKET_NAME;
+const Prefix = BUCKET_PREFIX;
+
+const uploadPromises: Promise<any>[] = [];
 
 function streamToS3({ Key }: { Key: string }) {
   const pass = new PassThrough();
-  s3.upload(
-    { Bucket: BUCKET_NAME, Key, Body: pass, ACL: "public-read", ContentType: "application/zip" },
-    (err, data) => {
-      if (err) return void debug(err);
-      debug(data);
-    }
+  uploadPromises.push(
+    s3
+      .upload({ Bucket: BUCKET_NAME, Key, Body: pass, ACL: "public-read" }, (err, data) => {
+        if (err) return void console.error(err);
+        debug(data);
+      })
+      .promise()
+      .then(() => {
+        return debug(`finished uploading ${Key}`);
+      })
   );
   return pass;
 }
 
-export const deploy = async (params?: { Bucket?: string; Prefix?: string }) => {
-  const { Bucket = BUCKET_NAME, Prefix = BUCKET_PREFIX } = params || {};
-  const uuid = generate();
-  const { Key } = getKey(uuid);
-  debug({ params, Bucket, Prefix, uuid, Key });
+export const deploy = async (uuid = generate()) => {
+  const { Key: zipKey } = getKey(uuid);
+  debug({ NODE_ENV, BUILD_FOLDER, uuid, Bucket, Prefix, zipKey });
 
-  const zipFile = BUILD_FOLDER + sep + uuid + ".zip";
-  archive.pipe(createWriteStream(zipFile));
-  archive.pipe(streamToS3({ Key }));
+  const archive = Archiver("zip", { zlib: { level: 9 } });
+  archive.on("error", err => {
+    console.log(err);
+  });
 
-  // add archive version of template to bundle for long term storage
-  // and upload most current template to default template location
-  const templateName = uuid + ".json";
-  const templatePath = BUILD_FOLDER + sep + templateName;
+  const savePromises: Promise<any>[] = [];
+  function saveFile(path: string) {
+    const writeStream = createWriteStream(path);
+    savePromises.push(
+      new Promise(resolve => {
+        writeStream.on("finish", () => {
+          debug(`finished saving ${path}`);
+          resolve();
+        });
+      })
+    );
+    return writeStream;
+  }
+
+  /**
+   *
+   * build zip archive and save to disk as {UUID}.zip
+   * upload archive to s3 in same location that will be
+   * specified in template below
+   *
+   */
+  const zipPath = BUILD_FOLDER + sep + uuid + ".zip";
+  archive.pipe(saveFile(zipPath));
+  archive.pipe(streamToS3({ Key: zipKey }));
+
+  /**
+   *
+   * Build template and specify Key where bundle is.
+   *
+   * Save template to local disk as {UUID}.json,
+   * and upload as current template to default location
+   *
+   * Add template to bundle for long term versioned storage
+   *
+   */
+  const template = buildTemplate({ Bucket, Key: zipKey });
   const templateKey = getTemplateKey();
-  let template = buildTemplate({ Bucket, Key });
-  // minify template in production
-  if (PROD) template = JSON.stringify(JSON.parse(template));
-  archive.append(template, { name: "cloudformation.json" });
-  const templateSave = await writeFile(templatePath, template);
-  const templateUpload = s3
-    .putObject({
-      Bucket,
-      Key: templateKey,
-      Body: template,
-      ACL: "public-read"
-    })
-    .promise();
+  const templatePath = BUILD_FOLDER + sep + uuid + ".json";
+  const templateStream = Readable.from(template);
+  templateStream.pipe(saveFile(templatePath));
+  archive.pipe(streamToS3({ Key: templateKey }));
 
-  // build process outputs /${BUNDLE_PATH}/${FILENAME} as the primary artifact
-  // TODO: is there a way to get a streamed bundle from webpack?
+  
+  /**
+   *
+   * webpack.config.ts specifies output as /${BUNDLE_PATH}
+   * make sure filename inside is same as one specified in template
+   *
+   * TODO: is there a way to get a streamed bundle from webpack?
+   *
+   */
   await build();
   archive.append(createReadStream(BUNDLE_PATH), { name: FILENAME });
-  await Promise.all([templateSave, templateUpload, archive.finalize()]);
+  archive.append(template, { name: "cloudformation.json" });
+  await Promise.all([...savePromises, ...uploadPromises, archive.finalize()]);
 
-  debug(`>>>
+  console.log(`>>>
 >>> built bundle: ${BUNDLE_PATH}
 >>> and template: ${templatePath}
->>> zipped both: ${zipFile}
+>>> zipped both: ${zipPath}
 >>> to Bucket: ${Bucket}
->>> as Key: ${Key}
+>>> as Key: ${zipKey}
 >>> and: ${templateKey}
 >>>`);
 
   return {
     uuid,
-    zipFile,
-    templatePath,
-    Bucket,
-    Key
+    zipKey,
+    zipPath,
+    template,
+    templateKey,
+    templatePath
   };
 };
 

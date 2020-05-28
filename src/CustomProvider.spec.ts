@@ -3,6 +3,8 @@ import { getKey, BUCKET_NAME } from "../config";
 import { send, CustomProvider } from "../src/CustomProvider";
 import { getUrl, getResponse, deleteObject, generateEvent, RUN_PREFIX } from "../test/utils";
 
+jest.setTimeout(7000);
+
 it("test bucket should be setup correctly", async () => {
   expect.assertions(2);
   /**
@@ -10,7 +12,7 @@ it("test bucket should be setup correctly", async () => {
    * Make sure test bucket is setup correctly
    *
    */
-  const { Key } = getKey(undefined, RUN_PREFIX);
+  const { Key } = getKey(RUN_PREFIX, "setup-test");
   const tryPut = (url = `https://${BUCKET_NAME}.s3.amazonaws.com/${Key}`) =>
     Axios({
       url,
@@ -39,7 +41,7 @@ it("test bucket should be setup correctly", async () => {
 
 it("send() should PUT to presigned url", async done => {
   expect.assertions(1);
-  const Key = "testSend";
+  const { Key } = getKey(RUN_PREFIX, "send-put");
   const url = await getUrl({ Key });
   const response = await send({ url, data: "" });
   expect(response).toEqual({ statusCode: 200 });
@@ -48,7 +50,7 @@ it("send() should PUT to presigned url", async done => {
 });
 
 describe("CustomResource.prepareResponse", () => {
-  it("should handle FAILED responses", async () => {
+  it("should properly format FAILED responses", async () => {
     const event = await generateEvent("Update");
     const results: any = {
       Status: "FAILED",
@@ -141,7 +143,7 @@ describe("CustomResource", () => {
         delete: undefined as any
       });
       const event = await generateEvent("Update");
-      const Key = event.RequestId;
+      const { Key } = getKey(RUN_PREFIX, event.RequestId);
       event.RequestType = "NOTVALID" as any;
       await provider.handle(event);
       const response = await getResponse({ Key });
@@ -152,7 +154,7 @@ describe("CustomResource", () => {
       const provider = new CustomProvider({} as any);
 
       let event = await generateEvent("Create");
-      let Key = event.RequestId;
+      let { Key } = getKey(RUN_PREFIX, event.RequestId);
       await provider.handle(event);
       let response = await getResponse({ Key });
       expect(response.Reason).toEqual("create handler is not implemented");
@@ -160,7 +162,7 @@ describe("CustomResource", () => {
       await deleteObject({ Key });
 
       event = await generateEvent("Update");
-      Key = event.RequestId;
+      ({ Key } = getKey(RUN_PREFIX, event.RequestId));
       await provider.handle(event);
       response = await getResponse({ Key });
       expect(response.Reason).toEqual("update handler is not implemented");
@@ -168,7 +170,7 @@ describe("CustomResource", () => {
       await deleteObject({ Key });
 
       event = await generateEvent("Delete");
-      Key = event.RequestId;
+      ({ Key } = getKey(RUN_PREFIX, event.RequestId));
       await provider.handle(event);
       response = await getResponse({ Key });
       expect(response.Reason).toEqual("delete handler is not implemented");
@@ -186,7 +188,7 @@ describe("CustomResource", () => {
         delete: errorHandler
       });
       const event = await generateEvent("Update");
-      const Key = event.RequestId;
+      const { Key } = getKey(RUN_PREFIX, event.RequestId);
       await errorProvider.handle(event);
       const response = await getResponse({ Key });
       expect(response.Reason).toEqual(message);

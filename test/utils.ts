@@ -1,12 +1,13 @@
 import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { generate } from "shortid";
-import { s3, BUCKET_NAME } from "../config";
+import { s3, BUCKET_NAME, LAMBDA_TIMEOUT, getTemplateKey, getKey } from "../config";
 import {
   CloudFormationCustomResourceEvent,
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
+import { createStack, deleteStack } from "nomad-devops";
 
 export const RUN_PREFIX = generate();
 debug({ RUN_PREFIX });
@@ -31,7 +32,7 @@ export const deleteObject = ({ Key }: { Key: string }) => {
 };
 
 export const generateEvent = async (
-  type?: CloudFormationCustomResourceEvent["RequestType"]
+  type: CloudFormationCustomResourceEvent["RequestType"]
 ): Promise<CloudFormationCustomResourceUpdateEvent> => {
   const RequestId = generate();
   const ResourceType = "Testing";
@@ -42,7 +43,7 @@ export const generateEvent = async (
     LogicalResourceId,
     ServiceToken: "testing",
     StackId: "testing-testing-testing-yo",
-    ResponseURL: await getUrl({ Key: RequestId }),
+    ResponseURL: await getUrl({ Key: getKey(RUN_PREFIX, RequestId).Key }),
     ResourceProperties: {
       ServiceToken: "testing"
     }
@@ -67,4 +68,19 @@ export const generateEvent = async (
         RequestType: "Create"
       } as any;
   }
+};
+
+export const createTestStack = async (testId: string | number) => {
+  return await createStack({
+    StackName: `custom-resources-test-${RUN_PREFIX}-${testId}`,
+    TimeoutInMinutes: LAMBDA_TIMEOUT,
+    TemplateURL: `https://${BUCKET_NAME}.s3.amazonaws.com/${getTemplateKey()}`,
+    Capabilities: ["CAPABILITY_NAMED_IAM"]
+  });
+};
+
+export const deployTestStack = async (testId: string | number) => {
+  return await deleteStack({
+    StackName: `custom-resources-test-${RUN_PREFIX}-${testId}`
+  });
 };

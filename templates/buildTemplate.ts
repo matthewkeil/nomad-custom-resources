@@ -44,5 +44,6 @@ export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; 
     }
   };
 
-  return CF(template);
+  // minifiy template in production
+  return PROD ? JSON.stringify(JSON.parse(CF(template))) : CF(template);
 };

@@ -1,8 +1,9 @@
 import { Debug } from "./src/utils";
 const debug = Debug(__dirname, __filename);
 require("dotenv").config();
-import { execSync } from "child_process";
 import { resolve } from "path";
+import { execSync } from "child_process";
+import { existsSync, mkdirSync } from "fs";
 import { ACM, CloudFormation, Route53, S3 } from "aws-sdk";
 import { generate } from "shortid";
 
@@ -17,14 +18,19 @@ export const getBranch = () => {
 
 export const BRANCH = process.env.BRANCH || getBranch();
 export const DEBUG = typeof process.env.DEBUG === "string" && !!process.env.DEBUG.length;
-export const PROD = process.env.NODE_ENV === "production";
-export const TEST = process.env.NODE_ENV === "testing";
+export const NODE_ENV = process.env.NODE_ENV || "development";
+export const PROD = NODE_ENV === "production";
+export const TEST = NODE_ENV === "testing";
 
 const DIST = process.env.DIST_FOLDER || resolve(__dirname, "dist");
 const BUILD = process.env.BUILD_FOLDER || resolve(__dirname, "build");
 export const BUILD_FOLDER = PROD ? DIST : BUILD;
 export const FILENAME = process.env.BUNDLE_FILENAME || "index.js";
 export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME]);
+
+if (!existsSync(BUILD_FOLDER)) {
+  mkdirSync(BUILD_FOLDER);
+}
 
 export const BUCKET_NAME = process.env.PUBLIC_BUCKET || "nomad-devops";
 const BUCKET_PREFIX_PROD = process.env.BUCKET_PREFIX_PROD || "resources/custom";
@@ -37,22 +43,21 @@ export const BUCKET_PREFIX = PROD
   ? BUCKET_PREFIX_TEST
   : BUCKET_PREFIX_DEFAULT;
 
-export const getKey = (uuid?: string, runId?: string) => {
+export const getKey = (uuid?: string, testId?: string) => {
   const _uuid = uuid ? uuid : generate(); // if prod and no uuid set create shortid
-  let key = BUCKET_PREFIX + "/";
-  if (runId) key += `${runId}/`;
-  key += _uuid;
-  debug({ BUCKET_PREFIX, uuid, key });
+  let key = BUCKET_PREFIX + "/" + _uuid;
+  if (testId) key += `/${testId}`;
+  debug({ BUCKET_PREFIX, uuid, testId, key });
   return {
-    uuid,
-    runId,
     Prefix: BUCKET_PREFIX,
+    uuid,
+    testId,
     Key: key
   };
 };
 
 export const getTemplateKey = () => {
-  return `${BUCKET_PREFIX}/cloudformation.json`;
+  return `${BUCKET_PREFIX}/cloudformation`;
 };
 export const LAMBDA_TIMEOUT = 300; // in seconds
 

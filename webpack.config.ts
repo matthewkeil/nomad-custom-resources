@@ -1,5 +1,6 @@
 import { resolve } from "path";
 import { Configuration } from "webpack";
+import UglifyJsPlugin from "uglifyjs-webpack-plugin";
 import { PROD, BUILD_FOLDER, FILENAME } from "./config";
 
 const config: Configuration = {
@@ -39,6 +40,9 @@ const config: Configuration = {
         ]
       }
     ]
+  },
+  optimization: {
+    minimizer: [new UglifyJsPlugin()]
   }
 };
 
