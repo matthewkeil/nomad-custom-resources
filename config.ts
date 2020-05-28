@@ -5,7 +5,8 @@ import { resolve } from "path";
 import { execSync } from "child_process";
 import { existsSync, mkdirSync } from "fs";
 import { ACM, CloudFormation, Route53, S3 } from "aws-sdk";
-import { generate } from "shortid";
+import { generate as Generate } from "shortid";
+const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
 
 export const getBranch = () => {
   const output = execSync("git status");
@@ -28,9 +29,11 @@ export const BUILD_FOLDER = PROD ? DIST : BUILD;
 export const FILENAME = process.env.BUNDLE_FILENAME || "index.js";
 export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME]);
 
-if (!existsSync(BUILD_FOLDER)) {
-  mkdirSync(BUILD_FOLDER);
-}
+try {
+  if (!existsSync(BUILD_FOLDER)) {
+    mkdirSync(BUILD_FOLDER);
+  }
+} catch {}
 
 export const BUCKET_NAME = process.env.PUBLIC_BUCKET || "nomad-devops";
 const BUCKET_PREFIX_PROD = process.env.BUCKET_PREFIX_PROD || "resources/custom";

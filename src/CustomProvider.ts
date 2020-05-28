@@ -2,7 +2,8 @@ import { Debug } from "./utils";
 const debug = Debug(__dirname, __filename);
 import { parse } from "url";
 import { request } from "https";
-import { generate } from "shortid";
+import { generate as Generate } from "shortid";
+const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
 import {
   CloudFormationCustomResourceCreateEvent,
   CloudFormationCustomResourceUpdateEvent,

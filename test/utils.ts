@@ -1,13 +1,13 @@
 import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
-import { generate } from "shortid";
-import { s3, BUCKET_NAME, LAMBDA_TIMEOUT, getTemplateKey, getKey } from "../config";
+import { generate as Generate } from "shortid";
+const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+import { s3, BUCKET_NAME, LAMBDA_TIMEOUT, getTemplateKey, getKey, cloudformation } from "../config";
 import {
   CloudFormationCustomResourceEvent,
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
-import { createStack, deleteStack } from "nomad-devops";
 
 export const RUN_PREFIX = generate();
 debug({ RUN_PREFIX });
@@ -70,17 +70,35 @@ export const generateEvent = async (
   }
 };
 
-export const createTestStack = async (testId: string | number) => {
-  return await createStack({
-    StackName: `custom-resources-test-${RUN_PREFIX}-${testId}`,
-    TimeoutInMinutes: LAMBDA_TIMEOUT,
-    TemplateURL: `https://${BUCKET_NAME}.s3.amazonaws.com/${getTemplateKey()}`,
-    Capabilities: ["CAPABILITY_NAMED_IAM"]
-  });
+export const createTestStack = async (testId: string | number, runPrefix = RUN_PREFIX) => {
+  const { StackId } = await cloudformation
+    .createStack({
+      StackName: `custom-resources-test-${runPrefix}-${testId}`,
+      TimeoutInMinutes: LAMBDA_TIMEOUT,
+      TemplateURL: `https://${BUCKET_NAME}.s3.amazonaws.com/${getTemplateKey()}`,
+      Capabilities: ["CAPABILITY_NAMED_IAM"]
+    })
+    .promise();
+  const StackName = StackId?.split("/")[1];
+  const { Stacks } = await cloudformation.waitFor("stackCreateComplete", { StackName }).promise();
+  return Stacks?.find(stack => stack.StackName === StackName);
 };
 
-export const deployTestStack = async (testId: string | number) => {
-  return await deleteStack({
-    StackName: `custom-resources-test-${RUN_PREFIX}-${testId}`
-  });
+export const deleteTestStack = async (testId: string | number, runPrefix = RUN_PREFIX) => {
+  const StackName = `custom-resources-test-${runPrefix}-${testId}`;
+  const { Stacks } = await cloudformation.describeStacks({ StackName }).promise();
+  const currentStack = Stacks?.find(stack => stack.StackName === StackName);
+  debug({ currentStack });
+  await cloudformation.deleteStack({ StackName }).promise();
+  await cloudformation.waitFor("stackDeleteComplete", { StackName }).promise();
+  let Marker: undefined | string;
+  do {
+    const { StackSummaries, NextToken } = await cloudformation
+      .listStacks({ StackStatusFilter: ["DELETE_COMPLETE"], NextToken: Marker })
+      .promise();
+    debug({ NextToken });
+    const deleted = StackSummaries?.find(summary => summary.StackId === currentStack?.StackId);
+    if (deleted) return deleted;
+    if (NextToken) Marker = NextToken;
+  } while (Marker);
 };

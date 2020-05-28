@@ -2,16 +2,17 @@ import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { sep } from "path";
 import { unlink, writeFile } from "fs/promises";
-import { generate } from "shortid";
+import { generate as Generate } from "shortid";
+const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
 import JSZip from "jszip";
 import { deploy } from "../bin/deploy";
 import { BUILD_FOLDER, FILENAME, BUCKET_NAME, BUCKET_PREFIX, BUNDLE_PATH, s3 } from "../config";
+import { deleteTestStack, createTestStack } from "./utils";
 
 const Bucket = BUCKET_NAME;
 let uuid!: string;
 let zipKey!: string;
 let zipPath!: string;
-let template!: string;
 let templateKey!: string;
 let templatePath!: string;
 const tempS3: string[] = [];
@@ -19,10 +20,10 @@ const tempFiles: string[] = [];
 const RUN_PREFIX = generate();
 debug({ RUN_PREFIX });
 
+jest.setTimeout(240000);
 beforeAll(done => {
-  jest.setTimeout(60000);
   deploy().then(response => {
-    ({ uuid, zipKey, zipPath, template, templatePath, templateKey } = response);
+    ({ uuid, zipKey, zipPath, templatePath, templateKey } = response);
     tempS3.push(zipKey, templateKey);
     tempFiles.push(zipPath, templatePath);
     done();
@@ -35,7 +36,6 @@ it("build/deploy should be setup correctly", async done => {
   expect(zipKey.startsWith(BUCKET_PREFIX)).toBeTruthy();
   expect(!!uuid).toBeTruthy();
 
-  console.log({ Bucket, zipKey });
   const { ContentType, Body } = await s3.getObject({ Bucket, Key: zipKey }).promise();
   const zip = await JSZip.loadAsync(Body);
   expect(ContentType).toEqual("application/octet-stream");
@@ -59,15 +59,12 @@ it("build/deploy should be setup correctly", async done => {
   done();
 });
 
-// it("should deploy", async () => {
-//   const results = await createStack({
-//     StackName: "just-a-test",
-//     Capabilities: ["CAPABILITY_NAMED_IAM"],
-//     TemplateURL: getTemplateUrl(Key + ".json")
-//   });
-
-//   console.log(results);
-// });
+it("should deploy", async () => {
+  let results = await createTestStack("should-deploy");
+  expect(results?.StackStatus).toEqual("CREATE_COMPLETE");
+  results = await deleteTestStack("should-deploy");
+  expect(results?.StackStatus).toEqual("DELETE_COMPLETE");
+});
 
 afterAll(async done => {
   debug({ outFile: zipPath, templatePath, BUNDLE_PATH, Key: zipKey });
@@ -75,7 +72,6 @@ afterAll(async done => {
   const s3DeletePromises: Promise<any>[] = tempS3.map(Key =>
     s3.deleteObject({ Bucket, Key }).promise()
   );
-
   await Promise.all([...s3DeletePromises, ...tempDeletePromises]);
   done();
 });

@@ -3,7 +3,8 @@ const debug = Debug(__dirname, __filename);
 import { sep } from "path";
 import { Readable, PassThrough } from "stream";
 import { createWriteStream, createReadStream } from "fs";
-import { generate } from "shortid";
+import { generate as Generate } from "shortid";
+const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
 import Archiver from "archiver";
 import {
   s3,
@@ -22,25 +23,8 @@ import { buildTemplate } from "../templates/buildTemplate";
 const Bucket = BUCKET_NAME;
 const Prefix = BUCKET_PREFIX;
 
-const uploadPromises: Promise<any>[] = [];
-
-function streamToS3({ Key }: { Key: string }) {
-  const pass = new PassThrough();
-  uploadPromises.push(
-    s3
-      .upload({ Bucket: BUCKET_NAME, Key, Body: pass, ACL: "public-read" }, (err, data) => {
-        if (err) return void console.error(err);
-        debug(data);
-      })
-      .promise()
-      .then(() => {
-        return debug(`finished uploading ${Key}`);
-      })
-  );
-  return pass;
-}
-
 export const deploy = async (uuid = generate()) => {
+  const buildPromise = build();
   const { Key: zipKey } = getKey(uuid);
   debug({ NODE_ENV, BUILD_FOLDER, uuid, Bucket, Prefix, zipKey });
 
@@ -61,6 +45,20 @@ export const deploy = async (uuid = generate()) => {
       })
     );
     return writeStream;
+  }
+
+  const uploadPromises: Promise<any>[] = [];
+  function streamToS3({ Key }: { Key: string }) {
+    const pass = new PassThrough();
+    uploadPromises.push(
+      s3
+        .upload({ Bucket: BUCKET_NAME, Key, Body: pass, ACL: "public-read" })
+        .promise()
+        .then(() => {
+          return debug(`finished uploading ${Key}`);
+        })
+    );
+    return pass;
   }
 
   /**
@@ -85,13 +83,15 @@ export const deploy = async (uuid = generate()) => {
    *
    */
   const template = buildTemplate({ Bucket, Key: zipKey });
-  const templateKey = getTemplateKey();
-  const templatePath = BUILD_FOLDER + sep + uuid + ".json";
   const templateStream = Readable.from(template);
-  templateStream.pipe(saveFile(templatePath));
-  archive.pipe(streamToS3({ Key: templateKey }));
 
-  
+  const templatePath = BUILD_FOLDER + sep + uuid + ".json";
+  templateStream.pipe(saveFile(templatePath));
+  const templateKey = getTemplateKey();
+  templateStream.pipe(streamToS3({ Key: templateKey }));
+
+  archive.append(template, { name: "cloudformation.json" });
+
   /**
    *
    * webpack.config.ts specifies output as /${BUNDLE_PATH}
@@ -100,9 +100,8 @@ export const deploy = async (uuid = generate()) => {
    * TODO: is there a way to get a streamed bundle from webpack?
    *
    */
-  await build();
+  await buildPromise;
   archive.append(createReadStream(BUNDLE_PATH), { name: FILENAME });
-  archive.append(template, { name: "cloudformation.json" });
   await Promise.all([...savePromises, ...uploadPromises, archive.finalize()]);
 
   console.log(`>>>
