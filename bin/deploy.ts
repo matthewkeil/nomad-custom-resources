@@ -15,7 +15,9 @@ import {
   BUCKET_NAME,
   BUCKET_PREFIX,
   NODE_ENV,
-  FILENAME
+  FILENAME,
+  DLQ_PATH,
+  DLQ_FILENAME
 } from "../config";
 import { build } from "./build";
 import { buildTemplate } from "../templates/buildTemplate";
@@ -101,11 +103,13 @@ export const deploy = async (uuid = generate()) => {
    *
    */
   await buildPromise;
-  archive.append(createReadStream(BUNDLE_PATH), { name: FILENAME });
+  archive.append(createReadStream(BUNDLE_PATH), { name: FILENAME + ".js" });
+  archive.append(createReadStream(DLQ_PATH), { name: DLQ_FILENAME + ".js" });
   await Promise.all([...savePromises, ...uploadPromises, archive.finalize()]);
 
   console.log(`>>>
->>> built bundle: ${BUNDLE_PATH}
+>>> built handler bundle: ${BUNDLE_PATH}
+>>> built dlq bundle: ${DLQ_PATH}
 >>> and template: ${templatePath}
 >>> zipped both: ${zipPath}
 >>> to Bucket: ${Bucket}

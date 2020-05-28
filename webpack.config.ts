@@ -6,10 +6,13 @@ import { PROD, BUILD_FOLDER, FILENAME } from "./config";
 const config: Configuration = {
   mode: PROD ? "production" : "development",
   target: "node",
-  entry: resolve(__dirname, "src", "handler.ts"),
+  entry: {
+    [FILENAME]: resolve(__dirname, "src", "handler.ts"),
+    deadLetterQue: resolve(__dirname, "src", "deadLetterQue.ts")
+  },
   output: {
     path: BUILD_FOLDER,
-    filename: FILENAME,
+    filename: "[name].js",
     libraryTarget: "commonjs"
   },
   resolve: {

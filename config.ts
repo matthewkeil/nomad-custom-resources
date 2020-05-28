@@ -26,8 +26,10 @@ export const TEST = NODE_ENV === "testing";
 const DIST = process.env.DIST_FOLDER || resolve(__dirname, "dist");
 const BUILD = process.env.BUILD_FOLDER || resolve(__dirname, "build");
 export const BUILD_FOLDER = PROD ? DIST : BUILD;
-export const FILENAME = process.env.BUNDLE_FILENAME || "index.js";
-export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME]);
+export const FILENAME = process.env.BUNDLE_FILENAME || "index";
+export const BUNDLE_PATH = resolve(...[BUILD_FOLDER, FILENAME + ".js"]);
+export const DLQ_FILENAME = process.env.BUNDLE_FILENAME || "deadLetterQue";
+export const DLQ_PATH = resolve(...[BUILD_FOLDER, DLQ_FILENAME + ".js"]);
 
 try {
   if (!existsSync(BUILD_FOLDER)) {

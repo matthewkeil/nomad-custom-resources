@@ -2,7 +2,13 @@ import CF, { Fn } from "cloudform";
 import { CustomResourceProvider } from "./CustomResourceProvider";
 import { CustomResourceProviderLogGroup } from "./CustomResourceProviderLogGroup";
 import { CustomResourceProviderRole } from "./CustomResourceProviderRole";
-import { BUCKET_NAME, PROD } from "../config";
+import { DeadLetterQueFunction } from "./DeadLetterQueFunction";
+import { DeadLetterQueFunctionRole } from "./DeadLetterQueFunctionRole";
+import { DeadLetterQueLogGroup } from "./DeadLetterQueLogGroup";
+import { DeadLetterQueLambdaPermission } from "./DeadLetterQueLambdaPermission";
+import { DeadLetterQueTopicPolicy } from "./DeadLetterQueTopicPolicy";
+import { DeadLetterQueTopic } from "./DeadLetterQueTopic";
+import { BUCKET_NAME, PROD, LAMBDA_TIMEOUT } from "../config";
 
 export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; Key: string }) => {
   const uuid = Key.split(".")
@@ -26,12 +32,22 @@ export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; 
       UUID: {
         Type: "String",
         Default: PROD ? "" : `-${uuid}`
+      },
+      LambdaTimeout: {
+        Type: "Number",
+        Default: LAMBDA_TIMEOUT
       }
     },
     Resources: {
       CustomResourceProvider,
       CustomResourceProviderLogGroup,
-      CustomResourceProviderRole
+      CustomResourceProviderRole,
+      DeadLetterQueFunction,
+      DeadLetterQueFunctionRole,
+      DeadLetterQueLambdaPermission,
+      DeadLetterQueLogGroup,
+      DeadLetterQueTopicPolicy,
+      DeadLetterQueTopic
     },
     Outputs: {
       CustomResourceProvider: {

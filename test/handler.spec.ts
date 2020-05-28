@@ -31,7 +31,7 @@ beforeAll(done => {
 });
 
 it("build/deploy should be setup correctly", async done => {
-  expect.assertions(9);
+  expect.assertions(11);
   expect(Bucket).toEqual(BUCKET_NAME);
   expect(zipKey.startsWith(BUCKET_PREFIX)).toBeTruthy();
   expect(!!uuid).toBeTruthy();
@@ -41,7 +41,7 @@ it("build/deploy should be setup correctly", async done => {
   expect(ContentType).toEqual("application/octet-stream");
 
   const testBundle = BUILD_FOLDER + sep + `${uuid}.zip`;
-  await writeFile(testBundle, await zip.file(FILENAME).async("nodebuffer"));
+  await writeFile(testBundle, await zip.file(FILENAME + ".js").async("nodebuffer"));
   tempFiles.push(testBundle);
 
   const testTemplate = BUILD_FOLDER + sep + `${uuid}.json`;
@@ -52,6 +52,8 @@ it("build/deploy should be setup correctly", async done => {
   expect(() => (bundle = require(testBundle))).not.toThrow();
   expect(typeof bundle.handler).toEqual("function");
   expect(bundle.handler.length).toEqual(2);
+  expect(typeof bundle.mockHandler).toEqual("function");
+  expect(bundle.mockHandler.length).toEqual(2);
 
   let template: any;
   expect(() => (template = require(testTemplate))).not.toThrow();
@@ -65,6 +67,8 @@ it("should deploy", async () => {
   results = await deleteTestStack("should-deploy");
   expect(results?.StackStatus).toEqual("DELETE_COMPLETE");
 });
+
+it("should fall back to dead letter que", () => {});
 
 afterAll(async done => {
   debug({ outFile: zipPath, templatePath, BUNDLE_PATH, Key: zipKey });
