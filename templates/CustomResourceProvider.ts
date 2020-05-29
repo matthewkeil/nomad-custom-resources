@@ -1,14 +1,14 @@
 import { Lambda, Fn } from "cloudform";
-import { FILENAME, TEST } from "../config";
+import { BRANCH, FILENAME, TEST } from "../config";
 
-let Environment;
+const Variables: NonNullable<NonNullable<
+  Lambda.Function["Properties"]["Environment"]
+>["Variables"]> = {
+  BRANCH
+};
+
 if (typeof process.env.DEBUG === "string" && process.env.DEBUG.length) {
-  Environment = {
-    Variables: {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      DEBUG: process.env.DEBUG
-    }
-  };
+  Variables.DEBUG = process.env.DEBUG;
 }
 
 export const CustomResourceProvider = new Lambda.Function({
@@ -21,7 +21,10 @@ export const CustomResourceProvider = new Lambda.Function({
     S3Key: Fn.Ref("S3Key")
   },
   Timeout: Fn.Ref("LambdaTimeout"),
-  Handler: `${FILENAME}.${TEST ? "mockHandler" : "handler"}`,
+  Handler: Fn.Join(".", [FILENAME, Fn.Ref("LambdaHandler")]),
   MemorySize: 128,
-  Environment
+  DeadLetterConfig: {
+    TargetArn: Fn.Ref("DeadLetterQueTopic")
+  },
+  Environment: { Variables }
 }).dependsOn("CustomResourceProviderRole");

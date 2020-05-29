@@ -1,13 +1,19 @@
-import { Debug } from "../src/utils";
+import { Debug } from "./utils";
 const debug = Debug(__dirname, __filename);
 import { sep } from "path";
 import { unlink, writeFile } from "fs/promises";
 import { generate as Generate } from "shortid";
-const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 import JSZip from "jszip";
 import { deploy } from "../bin/deploy";
 import { BUILD_FOLDER, FILENAME, BUCKET_NAME, BUCKET_PREFIX, BUNDLE_PATH, s3 } from "../config";
-import { deleteTestStack, createTestStack } from "./utils";
+import {
+  deleteTestStack,
+  createTestStack,
+  createDlqTestStack,
+  createDlqTriggerStack,
+  deleteDlqTestStack
+} from "../test/utils";
 
 const Bucket = BUCKET_NAME;
 let uuid!: string;
@@ -52,8 +58,8 @@ it("build/deploy should be setup correctly", async done => {
   expect(() => (bundle = require(testBundle))).not.toThrow();
   expect(typeof bundle.handler).toEqual("function");
   expect(bundle.handler.length).toEqual(2);
-  expect(typeof bundle.mockHandler).toEqual("function");
-  expect(bundle.mockHandler.length).toEqual(2);
+  expect(typeof bundle.dlqTest).toEqual("function");
+  expect(bundle.dlqTest.length).toEqual(0);
 
   let template: any;
   expect(() => (template = require(testTemplate))).not.toThrow();
@@ -62,13 +68,20 @@ it("build/deploy should be setup correctly", async done => {
 });
 
 it("should deploy", async () => {
+  expect.assertions(2);
   let results = await createTestStack("should-deploy");
   expect(results?.StackStatus).toEqual("CREATE_COMPLETE");
   results = await deleteTestStack("should-deploy");
   expect(results?.StackStatus).toEqual("DELETE_COMPLETE");
 });
 
-it("should fall back to dead letter que", () => {});
+// it("should fall back to dead letter que", async () => {
+//   let results = await createDlqTestStack();
+//   expect(results?.StackStatus).toEqual("CREATE_COMPLETE");
+//   // createDlqTriggerStack();
+//   results = await deleteDlqTestStack();
+//   expect(results?.StackStatus).toEqual("DELETE_COMPLETE");
+// });
 
 afterAll(async done => {
   debug({ outFile: zipPath, templatePath, BUNDLE_PATH, Key: zipKey });

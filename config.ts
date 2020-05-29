@@ -6,7 +6,7 @@ import { execSync } from "child_process";
 import { existsSync, mkdirSync } from "fs";
 import { ACM, CloudFormation, Route53, S3 } from "aws-sdk";
 import { generate as Generate } from "shortid";
-const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 
 export const getBranch = () => {
   const output = execSync("git status");

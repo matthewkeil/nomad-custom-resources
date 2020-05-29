@@ -6,6 +6,11 @@ const logsStatement = {
   Action: "logs:*",
   Resource: "*"
 };
+const snsStatement = {
+  Effect: "Allow",
+  Action: "sns:Publish",
+  Resource: Fn.Ref("DeadLetterQueTopic")
+};
 const acmStatement = {
   Effect: "Allow",
   Action: [
@@ -68,7 +73,7 @@ export const CustomResourceProviderRole = new IAM.Role({
       PolicyName: Fn.Join("", ["nomad-custom-resource-provider-policy", Fn.Ref("UUID")]),
       PolicyDocument: {
         Version: "2012-10-17",
-        Statement: [logsStatement, acmStatement, route53Statement]
+        Statement: [snsStatement, logsStatement, acmStatement, route53Statement]
       }
     }
   ]

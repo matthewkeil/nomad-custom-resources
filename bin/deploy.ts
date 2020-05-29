@@ -4,7 +4,7 @@ import { sep } from "path";
 import { Readable, PassThrough } from "stream";
 import { createWriteStream, createReadStream } from "fs";
 import { generate as Generate } from "shortid";
-const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 import Archiver from "archiver";
 import {
   s3,
@@ -121,7 +121,6 @@ export const deploy = async (uuid = generate()) => {
     uuid,
     zipKey,
     zipPath,
-    template,
     templateKey,
     templatePath
   };

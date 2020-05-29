@@ -1,8 +1,8 @@
 import { Debug } from "./utils";
 const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceHandler } from "aws-lambda";
-import { testProviders } from "./providers/testProviders";
 import { CustomProvider } from "./CustomProvider";
+// import { testProviders } from "./providers/testProviders";
 import { recordSetProvider } from "./providers/RecordSetProvider";
 // import { hostedZoneProvider } from "./hostedZoneProvider";
 // import { certificateProvider } from "./certificateProvider";
@@ -39,4 +39,7 @@ const buildHandler = (resources: {
 };
 
 export const handler = buildHandler(resourceProviders);
-export const mockHandler = buildHandler(testProviders);
+export const dlqTest: CloudFormationCustomResourceHandler = async (event, context) => {
+  console.log("dlqTest handler: ", { event, context });
+  throw new Error("dlq test error. it works!! me thinks...");
+};

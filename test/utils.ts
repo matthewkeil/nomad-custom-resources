@@ -1,13 +1,14 @@
 import { Debug } from "../src/utils";
 const debug = Debug(__dirname, __filename);
 import { generate as Generate } from "shortid";
-const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 import { s3, BUCKET_NAME, LAMBDA_TIMEOUT, getTemplateKey, getKey, cloudformation } from "../config";
 import {
   CloudFormationCustomResourceEvent,
   CloudFormationCustomResourceResponse,
   CloudFormationCustomResourceUpdateEvent
 } from "aws-lambda";
+import { buildDlQTemplate } from "./buildDlQTemplate";
 
 export const RUN_PREFIX = generate();
 debug({ RUN_PREFIX });
@@ -70,13 +71,29 @@ export const generateEvent = async (
   }
 };
 
-export const createTestStack = async (testId: string | number, runPrefix = RUN_PREFIX) => {
+const createStack = async ({
+  testId,
+  runPrefix = RUN_PREFIX,
+  dlqTest = false
+}: {
+  testId: string | number;
+  runPrefix?: string;
+  dlqTest?: boolean;
+}) => {
   const { StackId } = await cloudformation
     .createStack({
       StackName: `custom-resources-test-${runPrefix}-${testId}`,
-      TimeoutInMinutes: LAMBDA_TIMEOUT,
+      TimeoutInMinutes: 3,
       TemplateURL: `https://${BUCKET_NAME}.s3.amazonaws.com/${getTemplateKey()}`,
-      Capabilities: ["CAPABILITY_NAMED_IAM"]
+      Capabilities: ["CAPABILITY_NAMED_IAM"],
+      Parameters: !dlqTest
+        ? undefined
+        : [
+            {
+              ParameterKey: "LambdaHandler",
+              ParameterValue: "dlqTest"
+            }
+          ]
     })
     .promise();
   const StackName = StackId?.split("/")[1];
@@ -84,6 +101,8 @@ export const createTestStack = async (testId: string | number, runPrefix = RUN_P
   return Stacks?.find(stack => stack.StackName === StackName);
 };
 
+export const createTestStack = (testId: string | number, runPrefix = RUN_PREFIX) =>
+  createStack({ testId, runPrefix });
 export const deleteTestStack = async (testId: string | number, runPrefix = RUN_PREFIX) => {
   const StackName = `custom-resources-test-${runPrefix}-${testId}`;
   const { Stacks } = await cloudformation.describeStacks({ StackName }).promise();
@@ -101,4 +120,15 @@ export const deleteTestStack = async (testId: string | number, runPrefix = RUN_P
     if (deleted) return deleted;
     if (NextToken) Marker = NextToken;
   } while (Marker);
+};
+
+export const createDlqTestStack = () => createStack({ testId: "dlq-test", dlqTest: true });
+export const deleteDlqTestStack = () => deleteTestStack("dlq-test");
+export const createDlqTriggerStack = (uuid: string = RUN_PREFIX) => {
+  return cloudformation
+    .createStack({
+      StackName: `custom-resources-test-dlq-trigger-${uuid}2`,
+      TemplateBody: buildDlQTemplate(uuid)
+    })
+    .promise();
 };

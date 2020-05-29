@@ -3,6 +3,7 @@ const debug = Debug(__dirname, __filename);
 import { CloudFormationCustomResourceEvent } from "aws-lambda";
 import { SNSHandler } from "aws-lambda";
 import { CustomProvider, send } from "./CustomProvider";
+import { generateEvent } from "../test/utils";
 
 export const handler: SNSHandler = async ({ Records }, context) => {
   debug({ Records, context });

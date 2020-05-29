@@ -3,7 +3,7 @@ const debug = Debug(__dirname, __filename);
 import { parse } from "url";
 import { request } from "https";
 import { generate as Generate } from "shortid";
-const generate = () => Generate().replace(/-_/g, `${Math.floor(Math.random() * 10)}`);
+const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 import {
   CloudFormationCustomResourceCreateEvent,
   CloudFormationCustomResourceUpdateEvent,
@@ -53,10 +53,6 @@ interface HandlerResponse {
   data?: CloudFormationCustomResourceResponse;
 }
 
-export function mockSend({ data }: SendResponseParams) {
-  return Promise.resolve({ statusCode: 200, data: JSON.parse(data) });
-}
-
 export function send({ url, data }: SendResponseParams) {
   return new Promise<HandlerResponse>((resolve, reject) => {
     const { host, path } = parse(url);
@@ -94,6 +90,11 @@ const defaultHandler = (type: keyof CustomProviderParams) => async (): Promise<R
   Status: "FAILED",
   Reason: `${type} handler is not implemented`
 });
+
+type CustomProviderHandler = (
+  event: CloudFormationCustomResourceEvent,
+  context?: Context
+) => Promise<HandlerResponse>;
 
 export class CustomProvider {
   public static prepareResponse(
@@ -142,32 +143,37 @@ export class CustomProvider {
     return send({ url: event.ResponseURL, data: JSON.stringify(response) });
   }
 
-  private _send: typeof send;
+  private _send = send;
   private create: CreateEventHandler;
   private update: UpdateEventHandler;
   private delete: DeleteEventHandler;
 
   constructor(params: CustomProviderParams) {
     debug("constructor params: ", { params });
-    const { create, update, delete: DELETE, MOCK_SEND } = (params || {}) as any;
+    const { create, update, delete: _delete } = params || {};
+    /**
+     * validate params. verify that create, update and delete are
+     * functions and take a single argument. if not add the default
+     * handler that returns an  error saying the handler wasnt
+     * implemented correctly
+     */
     if (typeof create !== "function" || create.length !== 1)
       debug("create handler must be a function. usind default 'fail' handler");
+    this.create = !!create ? create : defaultHandler("create");
+
     if (typeof update !== "function" || update.length !== 1)
       debug("update handler must be a function. usind default 'fail' handler");
-    if (typeof DELETE !== "function" || DELETE.length !== 1)
-      debug("delete handler must be a function. usind default 'fail' handler");
-    this.create = !!create ? create : defaultHandler("create");
     this.update = !!update ? update : defaultHandler("update");
-    this.delete = !!DELETE ? DELETE : defaultHandler("delete");
-    this._send = !!MOCK_SEND ? mockSend : send;
+
+    if (typeof _delete !== "function" || _delete.length !== 1)
+      debug("delete handler must be a function. usind default 'fail' handler");
+    this.delete = !!_delete ? _delete : defaultHandler("delete");
+
     Object.freeze(this);
   }
 
-  public handle = (
-    event: CloudFormationCustomResourceEvent,
-    context?: Context
-  ): Promise<HandlerResponse> =>
-    new Promise(async resolve => {
+  public handle: CustomProviderHandler = (event, context) =>
+    new Promise<HandlerResponse>(async resolve => {
       let timer: undefined | NodeJS.Timeout;
       if (!!context) {
         timer = setTimeout(async () => {

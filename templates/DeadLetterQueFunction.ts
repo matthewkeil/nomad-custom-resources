@@ -1,14 +1,14 @@
 import { Lambda, Fn } from "cloudform";
-import { DLQ_FILENAME } from "../config";
+import { BRANCH, DLQ_FILENAME } from "../config";
 
-let Environment;
+const Variables: NonNullable<NonNullable<
+  Lambda.Function["Properties"]["Environment"]
+>["Variables"]> = {
+  BRANCH
+};
+
 if (typeof process.env.DEBUG === "string" && process.env.DEBUG.length) {
-  Environment = {
-    Variables: {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      DEBUG: process.env.DEBUG
-    }
-  };
+  Variables.DEBUG = process.env.DEBUG;
 }
 
 export const DeadLetterQueFunction = new Lambda.Function({
@@ -22,5 +22,5 @@ export const DeadLetterQueFunction = new Lambda.Function({
   },
   Handler: `${DLQ_FILENAME}.handler`,
   MemorySize: 128,
-  Environment
+  Environment: { Variables }
 }).dependsOn("DeadLetterQueFunctionRole");

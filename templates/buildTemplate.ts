@@ -33,6 +33,11 @@ export const buildTemplate = ({ Bucket = BUCKET_NAME, Key }: { Bucket?: string; 
         Type: "String",
         Default: PROD ? "" : `-${uuid}`
       },
+      LambdaHandler: {
+        Type: "String",
+        Default: "handler",
+        AllowedValues: ["handler", "dlqTest"]
+      },
       LambdaTimeout: {
         Type: "Number",
         Default: LAMBDA_TIMEOUT

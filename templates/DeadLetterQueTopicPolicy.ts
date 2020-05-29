@@ -15,7 +15,7 @@ export const DeadLetterQueTopicPolicy = new SNS.TopicPolicy({
         },
         Condition: {
           ArnLike: {
-            "AWS:SourceArn": Fn.Join(":", ["arn:aws:*:*", Refs.AccountId])
+            "AWS:SourceArn": Fn.Join(":", ["arn:aws:*:*", Refs.AccountId, "*"])
           }
         }
       }
