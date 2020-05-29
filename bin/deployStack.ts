@@ -11,7 +11,7 @@ import {
 
 if (require.main === module) {
   // createDlqTestStack();
-  createDlqTriggerStack("cmIoTmv4A");
+  createDlqTriggerStack("y9Nbdhi0g");
   // console.log(
   //   JSON.stringify({
   //     RequestType: 'Delete',

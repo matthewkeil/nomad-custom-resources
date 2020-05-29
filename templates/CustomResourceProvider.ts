@@ -1,5 +1,5 @@
 import { Lambda, Fn } from "cloudform";
-import { BRANCH, FILENAME, TEST } from "../config";
+import { BRANCH, FILENAME } from "../config";
 
 const Variables: NonNullable<NonNullable<
   Lambda.Function["Properties"]["Environment"]
@@ -27,4 +27,4 @@ export const CustomResourceProvider = new Lambda.Function({
     TargetArn: Fn.Ref("DeadLetterQueTopic")
   },
   Environment: { Variables }
-}).dependsOn("CustomResourceProviderRole");
+}).dependsOn(["CustomResourceProviderRole", "DeadLetterQueTopic"]);

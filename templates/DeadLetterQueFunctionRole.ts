@@ -25,8 +25,8 @@ export const DeadLetterQueFunctionRole = new IAM.Role({
         Statement: [
           {
             Effect: "Allow",
-            Action: "logs:*",
-            Resource: "*"
+            Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
+            Resource: Fn.GetAtt("DeadLetterQueLogGroup", "Arn")
           }
         ]
       }

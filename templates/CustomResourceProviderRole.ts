@@ -1,10 +1,9 @@
 import { Fn, IAM } from "cloudform";
-import { BRANCH } from "../config";
 
 const logsStatement = {
   Effect: "Allow",
-  Action: "logs:*",
-  Resource: "*"
+  Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
+  Resource: Fn.GetAtt("CustomResourceProviderLogGroup", "Arn")
 };
 const snsStatement = {
   Effect: "Allow",
@@ -77,4 +76,4 @@ export const CustomResourceProviderRole = new IAM.Role({
       }
     }
   ]
-});
+}).dependsOn(["DeadLetterQueTopic", "CustomResourceProviderLogGroup"]);
