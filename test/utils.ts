@@ -73,16 +73,16 @@ export const generateEvent = async (
 
 const createStack = async ({
   testId,
-  runPrefix = RUN_PREFIX,
+  uuid,
   dlqTest = false
 }: {
   testId: string | number;
-  runPrefix?: string;
+  uuid: string;
   dlqTest?: boolean;
 }) => {
   const { StackId } = await cloudformation
     .createStack({
-      StackName: `custom-resources-test-${runPrefix}-${testId}`,
+      StackName: `custom-resources-test-${uuid}-${testId}`,
       TimeoutInMinutes: 3,
       TemplateURL: `https://${BUCKET_NAME}.s3.amazonaws.com/${getTemplateKey()}`,
       Capabilities: ["CAPABILITY_NAMED_IAM"],
@@ -101,10 +101,11 @@ const createStack = async ({
   return Stacks?.find(stack => stack.StackName === StackName);
 };
 
-export const createTestStack = (testId: string | number, runPrefix = RUN_PREFIX) =>
-  createStack({ testId, runPrefix });
-export const deleteTestStack = async (testId: string | number, runPrefix = RUN_PREFIX) => {
-  const StackName = `custom-resources-test-${runPrefix}-${testId}`;
+export const createTestStack = ({ testId, uuid }: { testId: string; uuid: string }) =>
+  createStack({ testId, uuid });
+
+export const deleteTestStack = async ({ testId, uuid }: { testId: string; uuid: string }) => {
+  const StackName = `custom-resources-test-${uuid}-${testId}`;
   const { Stacks } = await cloudformation.describeStacks({ StackName }).promise();
   const currentStack = Stacks?.find(stack => stack.StackName === StackName);
   debug({ currentStack });
@@ -122,13 +123,25 @@ export const deleteTestStack = async (testId: string | number, runPrefix = RUN_P
   } while (Marker);
 };
 
-export const createDlqTestStack = () => createStack({ testId: "dlq-test", dlqTest: true });
-export const deleteDlqTestStack = () => deleteTestStack("dlq-test");
+export const createDlqTestStack = (uuid: string) =>
+  createStack({ uuid, testId: "dlq-test", dlqTest: true });
+
+export const deleteDlqTestStack = (uuid: string) => deleteTestStack({ uuid, testId: "dlq-test" });
+
 export const createDlqTriggerStack = (uuid: string = RUN_PREFIX) => {
   return cloudformation
     .createStack({
-      StackName: `custom-resources-test-dlq-trigger-${uuid}2`,
+      StackName: `custom-resources-test-dlq-trigger-${uuid}`,
       TemplateBody: buildDlQTemplate(uuid)
+    })
+    .promise();
+};
+
+export const deleteDlqTriggerStack = (uuid: string = RUN_PREFIX) => {
+  return cloudformation
+    .deleteStack({
+      StackName: `custom-resources-test-${uuid}-dlq-trigger`,
+      RetainResources: ["DlqError"]
     })
     .promise();
 };

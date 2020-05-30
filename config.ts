@@ -4,7 +4,7 @@ require("dotenv").config();
 import { resolve } from "path";
 import { execSync } from "child_process";
 import { existsSync, mkdirSync } from "fs";
-import { ACM, CloudFormation, Route53, S3 } from "aws-sdk";
+import { SNS, CloudWatchLogs, ACM, CloudFormation, Route53, S3 } from "aws-sdk";
 import { generate as Generate } from "shortid";
 const generate = () => Generate().replace(/[-_]/g, `${Math.floor(Math.random() * 10)}`);
 
@@ -75,3 +75,5 @@ export const acm = new ACM(AWS_SERVICE_CONFIG);
 export const cloudformation = new CloudFormation(AWS_SERVICE_CONFIG);
 export const route53 = new Route53(AWS_SERVICE_CONFIG);
 export const s3 = new S3(AWS_SERVICE_CONFIG);
+export const logs = new CloudWatchLogs(AWS_SERVICE_CONFIG);
+export const sns = new SNS(AWS_SERVICE_CONFIG);
